@@ -602,10 +602,10 @@
   dependencies:
     "@types/retry" "*"
 
-"@types/async@^3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@types/async/-/async-3.0.1.tgz#eb33247ffc23d904f9069a292c260c6324cb652c"
-  integrity sha512-fBq+1+btw/4CPGCpp3B05vUsslyikLUSUoZmFEjjHrUEPOisIVxUzGJFg1k43iWq9y0lC2UDqWAlg5ynUCwwSA==
+"@types/async@^3.0.5":
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/@types/async/-/async-3.0.5.tgz#e6fab3e12ffb7048085aafa49001574c35c6fbc0"
+  integrity sha512-X4NAFPUAfVGKzP9YFuy/YkwlFLxXYwzmzdstKwQ2LHhoUGMyJdj8d5FNMX3/RLsQ0N5KhNY8CVYb0mKE/WnPHg==
 
 "@types/body-parser@*":
   version "1.17.0"
