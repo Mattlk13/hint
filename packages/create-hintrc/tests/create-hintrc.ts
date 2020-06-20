@@ -82,9 +82,13 @@ const loadScript = (context: CreateHintRCContext): () => Promise<boolean> => {
     const initHintrc = proxyquire('../src/create-hintrc', {
         './browserslist': context.stubBrowserslistObject,
         '@hint/utils': {
-            fs: utils.fs,
-            logger: context.logger,
-            npm: context.npm
+            appInsights: {
+                sendPendingData() { },
+                trackEvent() { }
+            },
+            getOfficialPackages: context.npm.getOfficialPackages,
+            installPackages: context.npm.installPackages,
+            logger: context.logger
         },
         child_process: context.child, // eslint-disable-line camelcase
         fs: context.fs,

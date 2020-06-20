@@ -4,52 +4,53 @@ import * as isCI from 'is-ci';
 import compact = require('lodash/compact');
 import * as puppeteer from 'puppeteer-core';
 
-import { Browser, getInstallationPath, debug as d, dom, HTMLElement, network, HTMLDocument, HttpHeaders } from '@hint/utils';
+import { getPlatform } from '@hint/utils';
+import { isRegularProtocol } from '@hint/utils-network';
+import { HttpHeaders } from '@hint/utils-types';
+import {
+    createHTMLDocument,
+    HTMLElement,
+    HTMLDocument,
+    traverse
+} from '@hint/utils-dom';
+import { debug as d } from '@hint/utils-debug';
 import { normalizeHeaders, Requester } from '@hint/utils-connector-tools';
 import { IConnector, Engine, NetworkData } from 'hint';
-import { launch, close, LifecycleLaunchOptions } from './lib/lifecycle';
 
+import { Browser, getInstallationPath } from './lib/chromium-finder';
+import { ActionConfig, UserActions, group as groupActions } from './lib/actions';
+import { AuthConfig, HTTPAuthConfig, basicHTTPAuth, formAuth } from './lib/authenticators';
+import { launch, close, LifecycleLaunchOptions } from './lib/lifecycle';
 import { getFavicon } from './lib/get-favicon';
 import { onRequestHandler, onRequestFailedHandler, onResponseHandler } from './lib/events';
 
-const { createHTMLDocument, traverse } = dom;
-const { isRegularProtocol } = network;
+import { schema } from './lib/schema';
+
 const debug: debug.IDebugger = d(__filename);
 
 type EventName = keyof puppeteer.PageEventObj;
 
-type AuthConfig = {
-    user: {
-        selector: string;
-        value: string;
-    };
-    password: {
-        selector: string;
-        value: string;
-    };
-    submit: {
-        selector: string;
-    };
-};
-
 // TODO: keep in sync with the schema and take a look at #1594 and #1628
-type ConnectorOptions = {
-    auth?: AuthConfig;
+export type ConnectorOptions = {
+    actions?: ActionConfig[];
+    auth?: AuthConfig | HTTPAuthConfig;
     browser?: Browser;
     detached?: boolean;
     headless?: boolean;
     ignoreHTTPSErrors?: boolean;
-    puppeteerOptions?: puppeteer.ConnectOptions;
+    puppeteerOptions?: puppeteer.ConnectOptions | puppeteer.LaunchOptions;
     waitUntil?: puppeteer.LoadEvent;
 };
 
 export default class PuppeteerConnector implements IConnector {
-    private _auth: AuthConfig | null;
+    private _actions: UserActions;
     private _browser!: puppeteer.Browser;
+    private _connectorOptions: ConnectorOptions;
     private _dom: HTMLDocument | undefined;
     private _engine: Engine;
     private _finalHref = '';
     private _headers: HttpHeaders = {};
+    private _ignoredMethods: puppeteer.HttpMethod[] = ['OPTIONS'];
     private _listeners: Map<EventName, Function> = new Map();
     private _originalDocument: HTMLDocument | undefined;
     private _page!: puppeteer.Page;
@@ -61,48 +62,7 @@ export default class PuppeteerConnector implements IConnector {
     private _targetNetworkData!: NetworkData;
     private _waitUntil: puppeteer.LoadEvent;
 
-    public static schema = {
-        additionalProperties: false,
-        definitions: {
-            fieldInput: {
-                properties: {
-                    selector: { types: 'string' },
-                    value: { types: 'string' }
-                },
-                required: ['selector', 'value'],
-                type: 'object'
-            },
-            submitInput: {
-                properties: { selector: { types: 'string' } },
-                required: ['selector'],
-                type: 'object'
-            }
-        },
-        properties: {
-            auth: {
-                additionalProperties: false,
-                properties: {
-                    password: { $ref: '#/definitions/fieldInput' },
-                    submit: { $ref: '#/definitions/submitInput' },
-                    user: { $ref: '#/definitions/fieldInput' }
-                },
-                required: ['user', 'password', 'submit'],
-                type: 'object'
-            },
-            browser: {
-                enum: ['Chrome', 'Chromium', 'Edge'],
-                type: 'string'
-            },
-            detached: { type: 'boolean' },
-            headless: { type: 'boolean' },
-            ignoreHTTPSErrors: { type: 'boolean' },
-            puppeteerOptions: { type: 'object' },
-            waitUntil: {
-                enum: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2'],
-                type: 'string'
-            }
-        }
-    };
+    public static schema = schema;
 
     public constructor(engine: Engine, options: ConnectorOptions = {}) {
         this._engine = engine;
@@ -114,18 +74,42 @@ export default class PuppeteerConnector implements IConnector {
             }
         });
 
+        this._connectorOptions = options;
         this._waitUntil = options && options.waitUntil ? options.waitUntil : 'networkidle2';
-        this._options = this.toPuppeteerOptions(options);
-        this._auth = options && options.auth ? options.auth : null;
+
+        if (this._connectorOptions.browser) {
+            const browser = this._connectorOptions.browser as string;
+
+            this._connectorOptions.browser = (browser.charAt(0).toUpperCase() + browser.slice(1) as Browser);
+        }
+
+        this._options = this.toPuppeteerOptions(this._connectorOptions);
+
+        this._actions = groupActions(options.actions);
+
+        if (options.auth) {
+            this._actions.beforeTargetNavigation.unshift(basicHTTPAuth);
+            this._actions.afterTargetNavigation.unshift(formAuth);
+        }
+    }
+
+    private isIgnoredMethod(method: puppeteer.HttpMethod) {
+        return this._ignoredMethods.includes(method);
     }
 
     /** Transform general options to more specific `puppeteer` ones if applicable. */
     private toPuppeteerOptions(options: ConnectorOptions = {}): LifecycleLaunchOptions {
-        const headless = 'headless' in options ? options.headless : isCI;
+        const headless = 'headless' in options ?
+            options.headless :
+            isCI || getPlatform() === 'wsl';
 
-        const executablePath = 'browser' in options ?
-            getInstallationPath({ browser: options.browser }) :
-            getInstallationPath();
+        let executablePath: string | undefined;
+
+        if (!options.puppeteerOptions || !('executablePath' in options.puppeteerOptions)) {
+            executablePath = 'browser' in options ?
+                getInstallationPath({ browser: options.browser }) :
+                getInstallationPath();
+        }
 
         const handleSIGs = 'detached' in options ? {
             handleSIGHUP: !options.detached,
@@ -163,6 +147,7 @@ export default class PuppeteerConnector implements IConnector {
             return Promise.resolve();
         }
 
+        /* istanbul ignore next */
         return new Promise((resolve, reject) => {
             this._targetReady = resolve;
             this._targetFailed = reject;
@@ -170,6 +155,11 @@ export default class PuppeteerConnector implements IConnector {
     }
 
     private async onRequest(request: puppeteer.Request) {
+        /* istanbul ignore next */
+        if (this.isIgnoredMethod(request.method())) {
+            return;
+        }
+
         if (request.isNavigationRequest()) {
             this._headers = normalizeHeaders(request.headers())!;
         }
@@ -189,6 +179,7 @@ export default class PuppeteerConnector implements IConnector {
 
         const event = onRequestFailedHandler(request, this._dom);
 
+        /* istanbul ignore if */
         if (request.isNavigationRequest() && this._targetFailed) {
             this._targetFailed();
         }
@@ -203,6 +194,11 @@ export default class PuppeteerConnector implements IConnector {
     }
 
     private async onResponse(response: puppeteer.Response) {
+        /* istanbul ignore next */
+        if (this.isIgnoredMethod(response.request().method())) {
+            return;
+        }
+
         const resource = response.url();
         const isTarget = response.request().isNavigationRequest();
         const status = response.status();
@@ -236,6 +232,7 @@ export default class PuppeteerConnector implements IConnector {
         await this._engine.emitAsync(name, payload);
 
         // The `fetch::end` of the target needs to be processed before notifying
+        /* istanbul ignore if */
         if (isTarget && this._targetReady) {
             this._targetReady();
         }
@@ -304,8 +301,6 @@ export default class PuppeteerConnector implements IConnector {
     private async processTarget() {
         await this.waitForTarget();
 
-        const event = { resource: this._finalHref };
-
         // QUESTION: Even if the content is blank we will receive a minimum HTML with this. Are we OK with the behavior?
 
         const html = await this._page.content();
@@ -327,27 +322,13 @@ export default class PuppeteerConnector implements IConnector {
         if (this._targetBody) {
             await traverse(this._dom, this._engine, this._page.url());
 
+            const event = {
+                document: this._dom,
+                resource: this._finalHref
+            };
+
             await this._engine.emitAsync('can-evaluate::script', event);
         }
-    }
-
-    private async authenticate() {
-        if (!this._auth) {
-            return;
-        }
-        const { user, password, submit } = this._auth;
-
-        await this._page.type(user.selector, user.value);
-        await this._page.type(password.selector, password.value);
-
-        /**
-         * Example on how to do it available in:
-         * https://pptr.dev/#?product=Puppeteer&version=v1.16.0&show=api-pagewaitfornavigationoptions
-         */
-        await Promise.all([
-            this._page.waitForNavigation({ waitUntil: this._waitUntil }),
-            this._page.click(submit.selector)
-        ]);
     }
 
     public async close() {
@@ -365,13 +346,20 @@ export default class PuppeteerConnector implements IConnector {
 
         await this._engine.emit('scan::start', { resource: target.href });
 
-        // TODO: Figure out how to execute the user tasks in here and when to subscribe to events
+        debug(`Executing "beforeTargetNavigation" actions`);
+        for (const action of this._actions.beforeTargetNavigation) {
+            await action(this._page, this._connectorOptions);
+        }
+
         this.addListeners();
 
         debug(`Navigating to ${target.href}`);
         await this._page.goto(target.href, { waitUntil: this._waitUntil });
 
-        await this.authenticate();
+        debug(`Executing "afterTargetNavigation" actions`);
+        for (const action of this._actions.afterTargetNavigation) {
+            await action(this._page, this._connectorOptions);
+        }
 
         // This is the final URL
         this._finalHref = this._page.url();

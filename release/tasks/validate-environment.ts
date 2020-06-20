@@ -8,6 +8,8 @@ import { debug, execa } from '../lib/utils';
 import { ListrTaskWrapper } from 'listr';
 import { getCurrentBranchRemoteInfo } from '../lib/git-helpers';
 
+const validRemoteBranches = ['master', 'servicing'];
+
 const runningInRoot = () => {
     const errorMessage = 'Not running from root of project';
     const pkg = require(path.join(process.cwd(), 'package.json'));
@@ -55,7 +57,29 @@ const authenticatedOnNpm = async () => {
     }
 };
 
-const masterRemote = async () => {
+const authenticatedOnVsce = async (ctx: Context) => {
+    if (ctx.argv.skipVsce) {
+        return;
+    }
+
+    let publishers = '';
+
+    try {
+        const { stdout } = await execa('vsce ls-publishers');
+
+        publishers = stdout || '';
+    } catch (e) {
+        throw new Error('Failed to find vsce, run `npm install -g vsce`');
+    }
+
+    if (!publishers.split('\n').includes('webhint')) {
+        throw new Error('No vsce publish access for webhint, run `yarn run vsce login webhint`');
+    }
+
+    debug(`User logged in to vsce with webhint publish access`);
+};
+
+const validRemote = async () => {
     const { remoteBranch, remoteURL } = await getCurrentBranchRemoteInfo();
 
     /*
@@ -75,8 +99,8 @@ const masterRemote = async () => {
         throw new Error(message);
     }
 
-    if (remoteBranch !== 'master') {
-        const message = `Current branch "${remoteBranch}" does not point to master`;
+    if (!validRemoteBranches.includes(remoteBranch)) {
+        const message = `Current branch "${remoteBranch}" does not point to any of the valid branches (${validRemoteBranches.join(', ')})`;
 
         debug(message);
 
@@ -96,20 +120,23 @@ export const validateEnvironment = async (ctx: Context, task: ListrTaskWrapper) 
         gitAvailable,
         noUncommitedChanges,
         npmVersion,
-        authenticatedOnNpm
+        authenticatedOnNpm,
+        authenticatedOnVsce
     ];
 
     ctx.argv = argv as Arguments<Parameters>;
 
     // We don't care about the branch when running on `--dryRun` mode
     if (!ctx.argv.dryRun) {
-        checks.push(masterRemote);
+        checks.push(validRemote);
     } else {
         debug('skipping branch check');
     }
 
-    for (const check of checks) {
-        await check();
+    if (!ctx.argv.testMode) {
+        for (const check of checks) {
+            await check(ctx);
+        }
     }
 
     // Check if we are in the right branch pointing to the right repo?

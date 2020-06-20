@@ -3,31 +3,42 @@ import * as path from 'path';
 import boxen = require('boxen');
 import * as chalk from 'chalk';
 import * as isCI from 'is-ci';
-import { default as ora } from 'ora';
+import * as ora from 'ora';
 import * as osLocale from 'os-locale';
 
-import { appInsights, configStore, debug as d, fs, getHintsFromConfiguration, logger, misc, network, npm, ConnectorConfig, normalizeHints, HintsConfigObject, HintSeverity } from '@hint/utils';
-import { Problem, Severity } from '@hint/utils/dist/src/types/problems';
+import {
+    appInsights,
+    askQuestion,
+    configStore,
+    ConnectorConfig,
+    getHintsFromConfiguration,
+    HintsConfigObject,
+    HintSeverity,
+    installPackages,
+    loadHintPackage,
+    logger,
+    mergeEnvWithOptions,
+    normalizeHints,
+    UserConfig
+} from '@hint/utils';
+import { cwd } from '@hint/utils-fs';
+import { getAsUris } from '@hint/utils-network';
+import { debug as d } from '@hint/utils-debug';
+import { Problem, Severity } from '@hint/utils-types';
 
 import {
     AnalyzerError,
     AnalyzeOptions,
     CLIOptions,
     CreateAnalyzerOptions,
-    HintResources,
-    UserConfig
+    HintResources
 } from '../types';
-import { loadHintPackage } from '../utils/packages/load-hint-package';
 import { createAnalyzer, getUserConfig } from '../';
 import { Analyzer } from '../analyzer';
 import { AnalyzerErrorStatus } from '../enums/error-status';
 
-const { getAsUris } = network;
-const { askQuestion, mergeEnvWithOptions } = misc;
-const { installPackages } = npm;
-const { cwd } = fs;
 const debug: debug.IDebugger = d(__filename);
-const configStoreKey: string = 'run';
+const alreadyRunKey: string = 'run';
 const spinner = ora({ spinner: 'line' });
 
 /*
@@ -53,7 +64,7 @@ by sending limited usage information
 (no personal information or URLs will be sent).
 
 To know more about what information will be sent please
-visit ${chalk.default.green('https://webhint.io/docs/user-guide/telemetry/summary/')}`;
+visit ${chalk.green('https://webhint.io/docs/user-guide/telemetry/summary/')}`;
 
     printFrame(message);
 };
@@ -67,16 +78,17 @@ by sending limited usage information
 (no personal information or URLs will be sent).
 
 To know more about what information will be sent please
-visit ${chalk.default.green('https://webhint.io/docs/user-guide/telemetry/summary/')}
+visit ${chalk.green('https://webhint.io/docs/user-guide/telemetry/summary/')}
 
 Please configure it using
-the environment variable HINT_TRACKING to 'on' or 'off'
-or set the flag --tracking=on|off`;
+the environment variable HINT_TELEMETRY to 'on' or 'off'
+or set the flag --telemetry=on|off`;
 
     printFrame(message);
 };
 
 const getHintsForTelemetry = (hints?: HintsConfigObject | (string | any)[]) => {
+    /* istanbul ignore next */
     if (!hints) {
         return null;
     }
@@ -104,46 +116,57 @@ const pruneUserConfig = (userConfig: UserConfig) => {
     };
 };
 
-/** Ask user if he wants to activate the telemetry or not. */
-const askForTelemetryConfirmation = async (userConfig: UserConfig) => {
-    if (appInsights.isConfigured()) {
-        return;
-    }
-
-    if (isCI) {
-        if (!appInsights.isConfigured()) {
-            showCITelemetryMessage();
-        }
-
-        return;
-    }
-
-    const alreadyRun: boolean = configStore.get(configStoreKey);
-
-    if (!alreadyRun) { /* This is the first time, don't ask anything. */
-        configStore.set(configStoreKey, true);
-
-        return;
-    }
-
+const askForTelemetryConfirmation = async () => {
     showTelemetryMessage();
 
-    const message: string = `Do you want to opt-in?`;
+    const message = `Do you want to opt-in?`;
 
     debug(`Prompting telemetry permission.`);
 
-    const confirm: boolean = await askQuestion(message);
+    const telemetryEnabled = await askQuestion(message);
 
-    if (confirm) {
+    if (telemetryEnabled) {
         appInsights.enable();
+    } else {
+        appInsights.disable();
+    }
 
-        appInsights.trackEvent('SecondRun');
-        appInsights.trackEvent('analyze', pruneUserConfig(userConfig));
+    return telemetryEnabled;
+};
 
+/** Ask user if he wants to activate the telemetry or not. */
+const sendTelemetryIfEnabled = async (userConfig: UserConfig) => {
+    const telemetryConfigured = appInsights.isConfigured();
+    let telemetryEnabled = appInsights.isEnabled();
+    const alreadyRun: boolean = configStore.get(alreadyRunKey);
+
+    if (!alreadyRun) {
+        configStore.set(alreadyRunKey, true);
+    }
+
+    if (!telemetryConfigured) {
+        if (isCI) {
+            showCITelemetryMessage();
+            telemetryEnabled = false;
+        } else if (alreadyRun) {
+            /* Only prompt the user about opt-intelemetry if they have run webhint before. */
+            telemetryEnabled = await askForTelemetryConfirmation();
+
+            if (telemetryEnabled) {
+                appInsights.trackEvent('cli-telemetry');
+            }
+        }
+    }
+
+    if (!telemetryEnabled) {
         return;
     }
 
-    appInsights.disable();
+    appInsights.trackEvent('cli-analyze', {
+        ci: isCI,
+        previouslyRun: alreadyRun,
+        ...pruneUserConfig(userConfig)
+    });
 };
 
 /**
@@ -151,15 +174,10 @@ const askForTelemetryConfirmation = async (userConfig: UserConfig) => {
  * defaults will be used.
  */
 const showDefaultMessage = () => {
-    const defaultMessage = `${chalk.default.yellow(`Couldn't find any valid configuration`)}
+    const defaultMessage = `Using the built-in configuration.
+Visit https://webhint.io/docs/user-guide/ to learn how to create your own configuration.`;
 
-Running hint with the default configuration.
-
-Learn more about how to create your own configuration at:
-
-${chalk.default.green('https://webhint.io/docs/user-guide/')}`;
-
-    printFrame(defaultMessage);
+    logger.log(defaultMessage);
 };
 
 const areFiles = (targets: URL[]) => {
@@ -188,8 +206,13 @@ const getDefaultConfiguration = (targets: URL[]) => {
     }
 
     const ext = targetsAreFiles ? 'development' : 'web-recommended';
+    const config = { extends: [ext] } as UserConfig;
 
-    return { extends: [ext] };
+    if (isCI) {
+        config.formatters = ['html', 'stylish'];
+    }
+
+    return config;
 };
 
 const askUserToUseDefaultConfiguration = async (targets: URL[]): Promise<UserConfig | null> => {
@@ -264,11 +287,11 @@ const loadUserConfig = async (actions: CLIOptions, targets: URL[]): Promise<User
 
 const askToInstallPackages = async (resources: HintResources): Promise<boolean> => {
     if (resources.missing.length > 0) {
-        appInsights.trackEvent('missing', resources.missing);
+        appInsights.trackEvent('cli-missing', resources.missing);
     }
 
     if (resources.incompatible.length > 0) {
-        appInsights.trackEvent('incompatible', resources.incompatible);
+        appInsights.trackEvent('cli-incompatible', resources.incompatible);
     }
 
     const missingPackages = resources.missing.map((name) => {
@@ -310,9 +333,11 @@ const getAnalyzer = async (userConfig: UserConfig, options: CreateAnalyzerOption
             return getAnalyzer(config, options, targets);
         }
 
+        /* istanbul ignore else */
         if (error.status === AnalyzerErrorStatus.ResourceError) {
             const installed = await askToInstallPackages(error.resources!);
 
+            /* istanbul ignore else */
             if (!installed) {
                 throw e;
             }
@@ -320,12 +345,14 @@ const getAnalyzer = async (userConfig: UserConfig, options: CreateAnalyzerOption
             return getAnalyzer(userConfig, options, targets);
         }
 
+        /* istanbul ignore next */
         if (error.status === AnalyzerErrorStatus.HintError) {
             logger.error(`Invalid hint configuration in .hintrc: ${error.invalidHints!.join(', ')}.`);
 
             throw e;
         }
 
+        /* istanbul ignore next */
         if (error.status === AnalyzerErrorStatus.ConnectorError) {
             logger.error(`Invalid connector configuration in .hintrc`);
 
@@ -379,21 +406,26 @@ export default async (actions: CLIOptions): Promise<boolean> => {
         return false;
     }
 
-    appInsights.trackEvent('analyze', pruneUserConfig(userConfig));
-
     const start = Date.now();
     let exitCode = 0;
 
     const endSpinner = (method: string) => {
+        /* istanbul ignore else */
         if (!actions.debug && (spinner as any)[method]) {
             (spinner as any)[method]();
         }
     };
 
-    const hasError = (reports: Problem[]): boolean => {
-        return reports.some((result: Problem) => {
-            return result.severity === Severity.error;
-        });
+    const hasIssues = (reports: Problem[]): boolean => {
+        const threshold = userConfig.severityThreshold || Severity.error;
+
+        for (const result of reports) {
+            if (result.severity >= threshold) {
+                return true;
+            }
+        }
+
+        return false;
     };
 
     const print = async (reports: Problem[], target?: string, scanTime?: number, date?: string): Promise<void> => {
@@ -423,6 +455,7 @@ export default async (actions: CLIOptions): Promise<boolean> => {
             };
         }
 
+        /* istanbul ignore next */
         analyzerOptions.targetStartCallback = (start) => {
             if (!actions.debug) {
                 spinner.start();
@@ -433,7 +466,7 @@ export default async (actions: CLIOptions): Promise<boolean> => {
             const scanEnd = Date.now();
             const start = scanStart.get(end.url) || 0;
 
-            if (hasError(end.problems)) {
+            if (hasIssues(end.problems)) {
                 exitCode = 1;
             }
 
@@ -448,12 +481,13 @@ export default async (actions: CLIOptions): Promise<boolean> => {
     try {
         await webhint.analyze(targets, getAnalyzeOptions());
 
-        await askForTelemetryConfirmation(userConfig!);
+        await sendTelemetryIfEnabled(userConfig!);
     } catch (e) {
         exitCode = 1;
         endSpinner('fail');
-        debug(`Failed to analyze: ${e.url}`);
+        debug(`Failed to analyze: ${targets}`);
         debug(e);
+        logger.error(e);
     }
 
     debug(`Total runtime: ${Date.now() - start}ms`);

@@ -6,7 +6,7 @@ import * as fs from 'fs-extra';
 import { Context, Package } from '../@types/custom';
 import { readFile } from '../lib/utils';
 
-const ignorePrefixes = ['hint', '@hint/configuration-all', '@hint/connector-chrome', 'create-', '@hint/utils'];
+const ignorePrefixes = ['hint', '@hint/configuration-all', 'create-', '@hint/utils'];
 
 const ignorePackage = (pkg: Package): boolean => {
     if (pkg.ignore) {
@@ -27,7 +27,7 @@ const isParser = (pkg: Package): boolean => {
 };
 
 const getHints = async (pkg: Package) => {
-    const hints: any = {};
+    const hints: string[] = [];
 
     const metasPromises = (await globby(['src/meta.ts', 'src/meta/*.ts'], {
         absolute: true,
@@ -43,7 +43,7 @@ const getHints = async (pkg: Package) => {
         const id = meta.match(hintIdRegex);
 
         if (id) {
-            hints[id[1]] = 'error';
+            hints.push(id[1]);
         }
     }
 

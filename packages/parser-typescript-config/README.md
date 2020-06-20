@@ -3,18 +3,18 @@
 The `typescript-config` parser allows the user to analyze the
 TypeScript configuration in their projects.
 
-To use it you will have to install it via `npm`:
+It will detect if a TypeScript configuration file is present in
+your project, checking the name of the file (i.e. `tsconfig.json`,
+`tsconfig.developement.json`). This parser detects if a config file
+has a valid content.
+
+This package is installed automatically by webhint:
 
 ```bash
-npm install @hint/parser-typescript-config
+npm install hint --save-dev
 ```
 
-Note: You can make `npm` install it as a `devDependency` using the
-`--save-dev` parameter, or to install it globally, you can use the
-`-g` parameter. For other options see [`npm`'s
-documentation](https://docs.npmjs.com/cli/install).
-
-And then activate it via the [`.hintrc`][hintrc] configuration file:
+To use it, activate it via the [`.hintrc`][hintrc] configuration file:
 
 ```json
 {
@@ -28,10 +28,8 @@ And then activate it via the [`.hintrc`][hintrc] configuration file:
 }
 ```
 
-This parser detect if a TypeScript configuration file is present in
-your project, checking the name of the file (i.e. `tsconfig.json`,
-`tsconfig.developement.json`). This parser detects if a config file
-has a valid content.
+**Note**: The recommended way of running webhint is as a `devDependency` of
+your project.
 
 ## Events emitted
 
@@ -46,7 +44,12 @@ This `parser` emits the following events:
   which contains the following information:
 
   * `resource`: the parsed resource.
-  * `config`: an object with a valid configuration (`TypeScriptConfig`).
+  * `getLocation`: helper to find the location of a path within the original
+    JSON source.
+  * `config`: the final configuration after adding default values
+    (`TypeScriptConfig`).
+  * `mergedConfig`: the merged configuration after inlining `extends`.
+  * `originalConfig`: the original configuration before resolving `extends`.
 
 * `parse::error::typescript-config::json`, of type `TypeScriptConfigInvalidJSON`
   which contains the following information:

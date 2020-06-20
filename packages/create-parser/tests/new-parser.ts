@@ -76,16 +76,17 @@ const loadScript = (context: NewParserContext) => {
     const script = proxyquire('../src/new-parser', {
         '../src/handlebars-utils': context.handlebarsUtils,
         '@hint/utils': {
-            fs: {
-                readFileAsync: context.readFileAsync,
-                writeFileAsync: context.writeFileAsync
+            appInsights: {
+                sendPendingData() { },
+                trackEvent() { }
             },
-            misc: {
-                normalizeStringByDelimiter: context.normalizeStringByDelimiter
-            },
-            packages: {
-                isOfficial: context.isOfficial
-            }
+            isOfficial: context.isOfficial,
+            normalizeStringByDelimiter: context.normalizeStringByDelimiter,
+
+        },
+        '@hint/utils-fs': {
+            readFileAsync: context.readFileAsync,
+            writeFileAsync: context.writeFileAsync
         },
         'fs-extra': context.fsExtra,
         inquirer: context.inquirer,

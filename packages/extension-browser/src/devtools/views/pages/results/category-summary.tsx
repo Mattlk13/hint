@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { getCategoryName } from '@hint/utils/dist/src/i18n/get-category-name';
-import { Severity } from '@hint/utils/dist/src/types/problems';
+import { getCategoryName } from '@hint/utils-i18n';
+import { Severity } from '@hint/utils-types';
 
 import { CategoryResults, HintResults } from '../../../../shared/types';
 
@@ -25,7 +25,7 @@ const CategorySummary = ({ name, hints, passed }: CategoryResults) => {
     return (
         <a className={styles.root} href={`#results-category-${name}`} data-icon={name}>
             {getCategoryName(name)}
-            <span className={`${styles.status} ${statusStyle}`}>{passed}/{hints.length}</span>
+            <span className={`${styles.status} ${statusStyle}`}>{hints.length - passed}</span>
         </a>
     );
 };

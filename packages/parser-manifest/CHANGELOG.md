@@ -1,3 +1,135 @@
+# 2.2.18 (May 18, 2020)
+
+## Chores
+
+* [[`ea08bf5acc`](https://github.com/webhintio/hint/commit/ea08bf5acc5c18f221b06ef34e6dee7813d04a70)] - Upgrade: Bump ava from 3.5.2 to 3.8.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`a65fdf46c4`](https://github.com/webhintio/hint/commit/a65fdf46c4e9edb0c714ff0dad94e6da2f98d43b)] - Upgrade: Bump nyc from 15.0.0 to 15.0.1 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`bd9f407ebf`](https://github.com/webhintio/hint/commit/bd9f407ebf0f4037c06b8e5637b2d882efb580ac)] - Upgrade: Bump @types/node from 13.13.2 to 13.13.4 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`48b4b39eae`](https://github.com/webhintio/hint/commit/48b4b39eae240045e74b39ad7060e38c27bbf38f)] - Upgrade: Bump @types/node from 13.9.2 to 13.13.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`a9ed7293bb`](https://github.com/webhintio/hint/commit/a9ed7293bb380eb73495c2adbadd1cfec997ebbe)] - Upgrade: Bump @types/sinon from 7.5.1 to 9.0.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`85c86a0891`](https://github.com/webhintio/hint/commit/85c86a0891c36423e5c76ca05acd5ab04e84a01c)] - Upgrade: Bump sinon from 9.0.1 to 9.0.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.17 (April 15, 2020)
+
+## Chores
+
+* [[`986279d560`](https://github.com/webhintio/hint/commit/986279d560adb6c905918d0d264401bc155bd7b2)] - Upgrade: Bump ava from 3.4.0 to 3.5.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`326c245db3`](https://github.com/webhintio/hint/commit/326c245db3047d8fb5f54695e8093beb04910f1b)] - Upgrade: Bump @types/node from 12.12.14 to 13.9.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.16 (March 18, 2020)
+
+## Bug fixes / Improvements
+
+* [[`c5eb40f819`](https://github.com/webhintio/hint/commit/c5eb40f819f79b6f92b18dcd015bfda5807bb034)] - Fix: Add `maskable` to `icon.purpose` in manifest (by [`Dimitar Nestorov`](https://github.com/dimitarnestorov) / see also: [`#3451`](https://github.com/webhintio/hint/issues/3451)).
+
+## Chores
+
+* [[`9af90ff3cd`](https://github.com/webhintio/hint/commit/9af90ff3cd1ab622feefb0b4c6e0e7fb32d6ef56)] - Upgrade: Bump sinon from 8.0.4 to 9.0.1 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`57379d447a`](https://github.com/webhintio/hint/commit/57379d447a925a7a7497d469c54e116658d82294)] - Upgrade: Bump nyc from 14.1.1 to 15.0.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`b073a311fa`](https://github.com/webhintio/hint/commit/b073a311facfc6864efec73886645bf8e9e3f1bd)] - Upgrade: Bump typescript from 3.7.5 to 3.8.3 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`9a7f1074d4`](https://github.com/webhintio/hint/commit/9a7f1074d421a918f5d6528815c69dfb912d3e35)] - Upgrade: Bump ava from 2.4.0 to 3.4.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`f847f60365`](https://github.com/webhintio/hint/commit/f847f6036569681f60d58fcc9214fe61f6ce2968)] - Upgrade: Bump eslint-plugin-markdown from 1.0.1 to 1.0.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`3830fbb908`](https://github.com/webhintio/hint/commit/3830fbb908c152887347417f56f70c3210ecbf26)] - Upgrade: Bump rimraf from 3.0.0 to 3.0.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`21bb432d24`](https://github.com/webhintio/hint/commit/21bb432d240341ab1013df3059b426ea70aef4fd)] - Upgrade: Bump typescript from 3.7.4 to 3.7.5 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`730a26fea9`](https://github.com/webhintio/hint/commit/730a26fea96022a877fe26065d8ce9965eefcb35)] - Upgrade: Bump eventemitter2 from 5.0.1 to 6.0.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`a83d989a41`](https://github.com/webhintio/hint/commit/a83d989a410ecb2a79ef498324808a9a3cdc1d2a)] - Upgrade: Bump sinon from 7.5.0 to 8.0.4 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`2e92bfc6d6`](https://github.com/webhintio/hint/commit/2e92bfc6d68d8161b8e85cc2e45a4654a7d182e1)] - Upgrade: Bump typescript from 3.7.3 to 3.7.4 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`2d25855042`](https://github.com/webhintio/hint/commit/2d258550426d9db7fb1446ef6f2931630feae292)] - Upgrade: Bump eslint from 6.6.0 to 6.8.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`7435145342`](https://github.com/webhintio/hint/commit/7435145342ff90a0e55f8d7cf295026442cebc91)] - Upgrade: Bump @types/sinon from 7.5.0 to 7.5.1 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`cb2fde008d`](https://github.com/webhintio/hint/commit/cb2fde008dd25ec1c5b770c823cc56ca76dc4271)] - Upgrade: Bump @types/node from 12.12.12 to 12.12.14 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`a620f1cafb`](https://github.com/webhintio/hint/commit/a620f1cafb55af6ca7672e66989ae1c21f03dbac)] - Chore: Refactor ESLint commands (by [`Antón Molleda`](https://github.com/molant) / see also: [`#2187`](https://github.com/webhintio/hint/issues/2187)).
+* [[`046efb21e5`](https://github.com/webhintio/hint/commit/046efb21e5e3b96dc5bb3f250e9384a70b6b32c3)] - Upgrade: Bump typescript from 3.6.4 to 3.7.3 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview) / see also: [`#3421`](https://github.com/webhintio/hint/issues/3421)).
+
+
+# 2.2.13 (December 2, 2019)
+
+## Bug fixes / Improvements
+
+* [[`7ea9591f38`](https://github.com/webhintio/hint/commit/7ea9591f38c2a79d9943bcb9ce6303db3a6556fb)] - Fix: Schema and Types for hints (see also: [`#3348`](https://github.com/webhintio/hint/issues/3348)).
+
+## Chores
+
+* [[`ff322d374c`](https://github.com/webhintio/hint/commit/ff322d374c352f415dca23ac63790c9349fe30da)] - Upgrade: Bump @types/node from 12.12.7 to 12.12.12.
+* [[`2c60ff85bd`](https://github.com/webhintio/hint/commit/2c60ff85bd9f8e5f8f6b17c4bb05cb61b9d219ea)] - Chore: Change unreleased packages version to 0.0.1.
+* [[`5ef883ef1d`](https://github.com/webhintio/hint/commit/5ef883ef1d9f6eb8fc1e229c211182d441cb4a98)] - Upgrade: Bump eslint from 6.5.1 to 6.6.0.
+* [[`9142edc7d3`](https://github.com/webhintio/hint/commit/9142edc7d362bfa44c3f5acab05ef44e52184143)] - Upgrade: Bump eslint-plugin-markdown from 1.0.0 to 1.0.1.
+* [[`e9172328e7`](https://github.com/webhintio/hint/commit/e9172328e7494e6bba58f361ec83c24c37123840)] - Chore: Drop `engine` field in `package.json`.
+* [[`0d37aded21`](https://github.com/webhintio/hint/commit/0d37aded21950358da7fb20ffd3288bc54b08da9)] - Chore: Update packages to use @hint/utils-string.
+* [[`be6b5025a8`](https://github.com/webhintio/hint/commit/be6b5025a83ac2501baa9b33a5535c8056bd428b)] - Chore: Simplify path to utils.
+* [[`12f5cbadb9`](https://github.com/webhintio/hint/commit/12f5cbadb989039c352a913629338b37419e749d)] - Chore: Update packages to use @hint/utils-json.
+* [[`baa55a4ebd`](https://github.com/webhintio/hint/commit/baa55a4ebd47e21eabffef9f7be74672125aef9b)] - Chore: Update packages to use @hint/utils-network.
+* [[`97bb31d0fa`](https://github.com/webhintio/hint/commit/97bb31d0fafb53572220cd647bb493716587ca2b)] - Chore: Update references to the new @hint/utils-types.
+
+
+# 2.2.12 (October 29, 2019)
+
+## Chores
+
+* [[`6fdc164013`](https://github.com/webhintio/hint/commit/6fdc164013359ecf012fb9dcd5c0ef9ed5aca192)] - Upgrade: Bump @types/sinon from 7.0.13 to 7.5.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`ce965513ae`](https://github.com/webhintio/hint/commit/ce965513ae2b715881d4f7891e795c046579f0d5)] - Upgrade: Bump ava from 1.4.1 to 2.4.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview) / see also: [`#3022`](https://github.com/webhintio/hint/issues/3022)).
+* [[`b8ba2e17cd`](https://github.com/webhintio/hint/commit/b8ba2e17cdca7fccfd274b2ba250a96329b23fe8)] - Upgrade: Bump sinon from 7.4.2 to 7.5.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`0d0466efff`](https://github.com/webhintio/hint/commit/0d0466efff7915f2ff929e0e85223841178eaac0)] - Upgrade: Bump typescript from 3.6.3 to 3.6.4 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.11 (October 16, 2019)
+
+## Chores
+
+* [[`99630d03dc`](https://github.com/webhintio/hint/commit/99630d03dc99cdb71a5010095a22b6908b6cdea5)] - Chore: Fix dependencies (by [`Antón Molleda`](https://github.com/molant)).
+* [[`995c967b64`](https://github.com/webhintio/hint/commit/995c967b64afbeecb5a4e4adf40179a416b4ee93)] - Upgrade: Bump eslint from 5.16.0 to 6.5.1 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview) / see also: [`#3092`](https://github.com/webhintio/hint/issues/3092)).
+
+
+# 2.2.10 (September 26, 2019)
+
+
+# 2.2.9 (September 24, 2019)
+
+## Bug fixes / Improvements
+
+* [[`9f13687ebb`](https://github.com/webhintio/hint/commit/9f13687ebbd3d929875cab5a9b9084cf608fa21f)] - Docs: Remove references to global install (by [`Antón Molleda`](https://github.com/molant) / see also: [`#2974`](https://github.com/webhintio/hint/issues/2974)).
+
+## Chores
+
+* [[`53edf270f8`](https://github.com/webhintio/hint/commit/53edf270f84ead765bb981345d5321568ac69142)] - Upgrade: Bump @types/node from 12.7.4 to 12.7.5 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.8 (September 19, 2019)
+
+## Bug fixes / Improvements
+
+* [[`65a3918894`](https://github.com/webhintio/hint/commit/65a3918894b7df50c5d2cfdeb96319828ba5362a)] - Fix: Remove unused devDependency (by [`Antón Molleda`](https://github.com/molant)).
+
+## Chores
+
+* [[`c5e66947d4`](https://github.com/webhintio/hint/commit/c5e66947d494771b487c5d45a477069c61c9ed0b)] - Upgrade: Bump typescript from 3.6.2 to 3.6.3 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.7 (September 11, 2019)
+
+## Bug fixes / Improvements
+
+* [[`5603617df9`](https://github.com/webhintio/hint/commit/5603617df96def7c2571c8e94d595b76ec4633ec)] - Fix: Reference correct package directory in monorepo (by [`Tony Ross`](https://github.com/antross) / see also: [`#2873`](https://github.com/webhintio/hint/issues/2873)).
+
+## Chores
+
+* [[`6a52ef4fb5`](https://github.com/webhintio/hint/commit/6a52ef4fb50931921be5da4c4cacd8760a3de887)] - Upgrade: Bump rimraf from 2.6.3 to 3.0.0 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`c2b32de999`](https://github.com/webhintio/hint/commit/c2b32de9997a922a4744991306a9bf9b22e3910f)] - Upgrade: Bump @types/node from 12.7.3 to 12.7.4 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`bbe99e3292`](https://github.com/webhintio/hint/commit/bbe99e329240a17e5f60c6c6261b0b9c2bd1774a)] - Upgrade: Bump typescript from 3.5.3 to 3.6.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`c94b993bab`](https://github.com/webhintio/hint/commit/c94b993babb99a9b49cc795fbf80663c4750ba93)] - Upgrade: Bump @types/node from 12.7.1 to 12.7.3 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+* [[`aab7643c70`](https://github.com/webhintio/hint/commit/aab7643c70042a5e7d2da9684844277d707854fe)] - Upgrade: Bump sinon from 7.3.2 to 7.4.2 (by [`dependabot-preview[bot]`](https://github.com/apps/dependabot-preview)).
+
+
+# 2.2.6 (August 29, 2019)
+
+## Bug fixes / Improvements
+
+* [[`fc2d5aacc0`](https://github.com/webhintio/hint/commit/fc2d5aacc09a39d67539c71628ada9fddb886913)] - Fix: Align manual manifest fetch behavior with connectors (by [`Tony Ross`](https://github.com/antross) / see also: [`#2882`](https://github.com/webhintio/hint/issues/2882)).
+* [[`425b389b7f`](https://github.com/webhintio/hint/commit/425b389b7f30f66fed34213d918107819aae45cc)] - Fix: Avoid redundant 'fetch::end::manifest' events (by [`Tony Ross`](https://github.com/antross)).
+* [[`6b26a320a7`](https://github.com/webhintio/hint/commit/6b26a320a7777090a6ef82901d073c131d9672ec)] - Fix: Use <base> element to resolve the url (by [`Jesus David García Gomez`](https://github.com/sarvaje)).
+
+
 # 2.2.5 (August 15, 2019)
 
 

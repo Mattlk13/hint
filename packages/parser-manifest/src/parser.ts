@@ -2,18 +2,14 @@ import {
     ElementFound,
     FetchEnd,
     NetworkData,
-    Parser,
-    SchemaValidationResult
+    Parser
 } from 'hint/dist/src/lib/types';
 
-import { normalizeString } from '@hint/utils/dist/src/misc/normalize-string';
-import { isHTTP } from '@hint/utils/dist/src/network/is-http';
-import { isHTTPS } from '@hint/utils/dist/src/network/is-https';
+import { normalizeString } from '@hint/utils-string';
+import { isHTTP, isHTTPS } from '@hint/utils-network';
 import { ManifestEvents } from './types';
 import { Engine } from 'hint/dist/src/lib/engine';
-import { parseJSON } from '@hint/utils/dist/src/json-parser';
-import { IJSONResult } from '@hint/utils/dist/src/types/json-parser';
-import { validate } from '@hint/utils/dist/src/schema-validation/schema-validator';
+import { IJSONResult, parseJSON, SchemaValidationResult, validate } from '@hint/utils-json';
 
 export * from './types';
 
@@ -99,33 +95,16 @@ export default class ManifestParser extends Parser<ManifestEvents> {
 
         await this.engine.emitAsync(this.fetchStartEventName, { resource });
 
-        let manifestNetworkData: NetworkData | undefined;
-        let error: Error | undefined;
+        let manifestNetworkData: NetworkData;
 
         try {
             manifestNetworkData = await this.engine.fetchContent(manifestURL);
-        } catch (e) {
-            error = e as Error;
-
-            /*
-             * Generic error message is used as it would be complicated
-             * to handle all the cases, and displaying the default error
-             * message wouldn't be very user friendly.
-             */
-
-            error.message = `'${hrefValue}' could not be fetched (request failed).`;
-        }
-
-        // TODO: Add check if manifest cannot be fetch because of CSP.
-
-        const statusCode: number | undefined = manifestNetworkData && manifestNetworkData.response.statusCode;
-
-        if (!manifestNetworkData || error || statusCode !== 200) {
+        } catch (error) {
 
             await this.engine.emitAsync(this.fetchErrorEventName, {
                 element,
-                error: error || new Error(`'${hrefValue}' could not be fetched (status code: ${statusCode}).`),
-                hops: (manifestNetworkData && manifestNetworkData.response.hops) || [manifestURL],
+                error,
+                hops: [manifestURL],
                 resource: manifestURL
             });
 
@@ -154,6 +133,10 @@ export default class ManifestParser extends Parser<ManifestEvents> {
         }
 
         this.fetchedManifests.add(resource);
+
+        if (response.statusCode >= 400) {
+            return;
+        }
 
         await this.engine.emitAsync(`parse::start::manifest`, { resource });
 

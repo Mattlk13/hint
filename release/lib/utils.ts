@@ -58,7 +58,10 @@ export const execWithRetry = (command: string, options?: execasync.Options) => {
         const args = command.split(' ');
         const program = args.shift()!;
 
-        return execasync(program, args, Object.assign({}, options, { stdio: [null, debugStream, debugStream] }));
+        return execasync(program, args, {
+            ...options,
+            ...{ stdio: [null, debugStream, debugStream] }
+        } as execasync.Options);
     };
 
     return pRetry(fn, {
@@ -134,14 +137,27 @@ export const execa = (command: string, options?: execasync.Options) => {
     return execasync(program, groupArgs(args), options);
 };
 
-type CustomTask = (ctx: any, task: ListrTaskWrapper) => Promise<any>;
+type CustomTask = (ctx: any, task: ListrTaskWrapper) => Promise<any> | any;
 
 export const taskErrorWrapper = (f: CustomTask) => {
     return (ctx: Context, task: ListrTaskWrapper) => {
-        return f(ctx, task)
-            .catch((err: Error) => {
-                ctx.error = err;
+        let result: any;
+
+        try {
+            result = f(ctx, task);
+        } catch (error) {
+            ctx.error = error;
+
+            throw error;
+        }
+
+        if (result && result.then) {
+            result.catch((error: Error) => {
+                ctx.error = error;
             });
+        }
+
+        return result;
     };
 };
 

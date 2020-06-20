@@ -1,17 +1,16 @@
-import { misc, test } from '@hint/utils';
-import { HintTest, testHint } from '@hint/utils-tests-helpers';
+import { Severity } from '@hint/utils-types';
+import { generateHTMLPage } from '@hint/utils-create-server';
+import { getHintPath, HintTest, testHint } from '@hint/utils-tests-helpers';
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-const { prettyPrintArray } = misc;
-const { generateHTMLPage, getHintPath } = test;
 const hintPath = getHintPath(__filename);
 
 const htmlPageWithScript = generateHTMLPage(undefined, '<script src="test.js"></script>');
 const htmlPageWithManifest = generateHTMLPage('<link rel="manifest" href="test.webmanifest">');
 
 const generateErrorMessage = (values: string[]): string => {
-    return `Response should not include disallowed ${prettyPrintArray(values)} ${values.length === 1 ? 'header' : 'headers'}.`;
+    return `Response should not include disallowed headers: ${values.join(', ')}`;
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,12 +40,12 @@ const testsForDefaults: HintTest[] = [
     },
     {
         name: `HTML page is served with one disallowed header`,
-        reports: [{ message: generateErrorMessage(['x-powered-by']) }],
+        reports: [{ message: generateErrorMessage(['x-powered-by']), severity: Severity.warning }],
         serverConfig: { '/': { headers: { 'X-Powered-By': 'test' } } }
     },
     {
         name: `HTML page is served with multiple disallowed headers`,
-        reports: [{ message: generateErrorMessage(['x-aspnetmvc-version', 'x-powered-by']) }],
+        reports: [{ message: generateErrorMessage(['x-aspnetmvc-version', 'x-powered-by']), severity: Severity.warning }],
         serverConfig: {
             '/': {
                 headers: {
@@ -114,7 +113,10 @@ const testsForDifferentServerHeaderValues: HintTest[] = (() => {
     disallowedServerHeaderValues.forEach((value) => {
         tests.push({
             name: `HTML page is served with disallowed 'Server: ${value}'`,
-            reports: [{ message: `'server' header value should only contain the server name, not '${value}'.` }],
+            reports: [{
+                message: `The 'server' header should only contain the server name.`,
+                severity: Severity.warning
+            }],
             serverConfig: { '/': { headers: { Server: value } } }
         });
     });
@@ -140,7 +142,7 @@ const testsForIgnoreConfigs: HintTest[] = [
 const testsForIncludeConfigs: HintTest[] = [
     {
         name: `HTML page is served with disallowed headers that are enforced because of configs`,
-        reports: [{ message: generateErrorMessage(['server', 'x-test-2']) }],
+        reports: [{ message: generateErrorMessage(['server', 'x-test-2']), severity: Severity.warning }],
         serverConfig: {
             '/': htmlPageWithScript,
             '/test.js': {
@@ -156,7 +158,7 @@ const testsForIncludeConfigs: HintTest[] = [
 const testsForConfigs: HintTest[] = [
     {
         name: `HTML page is served with disallowed headers that are both ignored and enforced because of configs`,
-        reports: [{ message: generateErrorMessage(['x-powered-by', 'x-test-1']) }],
+        reports: [{ message: generateErrorMessage(['x-powered-by', 'x-test-1']), severity: Severity.warning }],
         serverConfig: {
             '/': {
                 headers: {
@@ -164,6 +166,75 @@ const testsForConfigs: HintTest[] = [
                     'X-Powered-By': 'test',
                     'X-Test-1': 'test',
                     'X-Test-2': 'test'
+                }
+            }
+        }
+    }
+];
+
+const testForSpecialHeaders: HintTest[] = [
+    {
+        name: `HTML page is served with disallowed Expires header`,
+        reports: [{
+            message: 'The \'Expires\' header should not be used, \'Cache-Control\' should be preferred.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { Expires: 'Thu, 01 Dec 1994 16:00:00 GMT' } } }
+    },
+    {
+        name: `HTML page is served with disallowed Host header`,
+        reports: [{
+            message: 'The \'Host\' header should not be used, it is a request header only.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { Host: 'example.com' } } }
+    },
+    {
+        name: `HTML page is served with disallowed P3P header`,
+        reports: [{
+            message: 'The \'P3P\' header should not be used, it is a non-standard header only implemented in Internet Explorer.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { P3P: 'cp="this is not a p3p policy"' } } }
+    },
+    {
+        name: `HTML page is served with disallowed Pragma header`,
+        reports: [{
+            message: 'The \'Pragma\' header should not be used, it is deprecated and is a request header only.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { Pragma: 'no-cache' } } }
+    },
+    {
+        name: `HTML page is served with disallowed Via header`,
+        reports: [{
+            message: 'The \'Via\' header should not be used, it is a request header only.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { Via: '1.1 varnish, 1.1 squid' } } }
+    },
+    {
+        name: `HTML page is served with disallowed X-Frame-Options header`,
+        reports: [{
+            message: 'The \'X-Frame-Options\' header should not be used. A similar effect, with more consistent support and stronger checks, can be achieved with the \'Content-Security-Policy\' header and \'frame-ancestors\' directive.',
+            severity: Severity.warning
+        }],
+        serverConfig: { '/': { headers: { 'X-Frame-Options': 'SAMEORIGIN' } } }
+    }
+];
+
+const testForIgnoredSpecialHeaders: HintTest[] = [
+    {
+        name: `HTML page served with disallowed, but ignored, special headers does not lead to warnings`,
+        serverConfig: {
+            '/': {
+                headers: {
+                    Expires: 'Thu, 01 Dec 1994 16:00:00 GMT',
+                    Host: 'example.com',
+                    P3P: 'cp="this is not a p3p policy"',
+                    Pragma: 'no-cache',
+                    Via: '1.1 varnish, 1.1 squid',
+                    'X-Frame-Options': 'SAMEORIGIN'
                 }
             }
         }
@@ -178,5 +249,18 @@ testHint(hintPath, testsForConfigs, {
     hintOptions: {
         ignore: ['Server', 'X-Test-2', 'X-Test-3'],
         include: ['X-Powered-By', 'X-Test-1', 'X-Test-2']
+    }
+});
+testHint(hintPath, testForSpecialHeaders);
+testHint(hintPath, testForIgnoredSpecialHeaders, {
+    hintOptions: {
+        ignore: [
+            'Expires',
+            'Host',
+            'P3P',
+            'Pragma',
+            'Via',
+            'X-Frame-Options'
+        ]
     }
 });

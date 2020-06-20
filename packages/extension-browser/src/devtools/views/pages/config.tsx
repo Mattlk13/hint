@@ -15,6 +15,8 @@ import BrowsersConfig from './config/sections/browsers';
 import CategoriesConfig from './config/sections/categories';
 import ResourcesConfig from './config/sections/resources';
 import ConfigHeader from './config/header';
+import Settings from '../controls/settings';
+import SeveritiesConfig from './config/sections/severities';
 
 import { resolveIgnoreQuery } from './config/sections/resources';
 
@@ -35,14 +37,18 @@ const saveConfig = (config: ConfigData) => {
 type Props = {
     disabled?: boolean;
 
+    isTelemetryEnabled: boolean;
+
     /** Listener for when the user decides to run a scan. */
     onStart: (config: ConfigData) => void;
+
+    onTelemetryChange: (enable: boolean) => void;
 };
 
 /**
  * Display options to configure and initialize a scan.
  */
-const ConfigPage = ({ disabled, onStart }: Props) => {
+const ConfigPage = ({ disabled, onStart, onTelemetryChange, isTelemetryEnabled }: Props) => {
     const [config, setConfig] = useState(loadConfig);
 
     const onAnalyzeClick = useCallback(async () => {
@@ -65,6 +71,10 @@ const ConfigPage = ({ disabled, onStart }: Props) => {
         setConfig({ ...config, ignoredUrls });
     }, [config]);
 
+    const onSeverityChange = useCallback((severityThreshold?: string) => {
+        setConfig({ ...config, severityThreshold });
+    }, [config]);
+
     const onRestoreClick = useCallback(() => {
         setConfig({});
     }, []);
@@ -72,15 +82,17 @@ const ConfigPage = ({ disabled, onStart }: Props) => {
     return (
         <Page className={styles.root} disabled={disabled} onAction={onAnalyzeClick}>
             <ConfigHeader config={config} />
-            <main>
+            <main className={styles.main}>
                 <div className={styles.categories}>
                     <CategoriesConfig disabled={config.disabledCategories} onChange={onCategoriesChange} />
                     <BrowsersConfig query={config.browserslist} onChange={onBrowsersChange} />
                     <ResourcesConfig query={config.ignoredUrls} onChange={onResourcesChange} />
+                    <SeveritiesConfig query={config.severityThreshold} onChange={onSeverityChange} />
                 </div>
-                <Button onClick={onRestoreClick}>
+                <Button className={styles.button} onClick={onRestoreClick}>
                     {getMessage('restoreDefaultsLabel')}
                 </Button>
+                <Settings isTelemetryEnabled={isTelemetryEnabled} onTelemetryChange={onTelemetryChange}/>
             </main>
             <footer>
                 <PoweredBy className={styles.poweredBy} />

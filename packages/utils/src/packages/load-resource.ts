@@ -4,18 +4,17 @@ import * as path from 'path';
 import * as globby from 'globby';
 import * as semver from 'semver';
 
-import { cwd, loadJSONFile } from '../fs';
-import { debug as d } from '../debug';
+import { cwd, loadJSONFile } from '@hint/utils-fs';
+import { debug as d } from '@hint/utils-debug';
+import { normalizeIncludes } from '@hint/utils-string';
 import { isFullPackageName } from './is-full-package-name';
-import { ResourceType } from '../types/resource-type';
 import { loadPackage } from './load-package';
 import { loadHintPackage } from './load-hint-package';
 import { requirePackage } from './require-package';
 import { hasMultipleResources } from './has-multiple-resources';
-import { normalizeIncludes } from '../misc';
 import { toAbsolutePaths } from '../config/to-absolute-paths';
-import { ResourceErrorStatus } from '../types/resource-error-status';
-import { ResourceError } from '../types/resource-error';
+import { ResourceErrorStatus, ResourceType } from './enums';
+import { ResourceError } from './resource-error';
 
 const debug: debug.IDebugger = d(__filename);
 
@@ -174,6 +173,16 @@ const generateConfigPathsToResources = (configurations: string[], name: string, 
 };
 
 /**
+ * Accepts:
+ * * Relative paths (./foo)
+ * * Unix-style absolute paths (/foo)
+ * * Windows-style absolute paths (c:/foo)
+ */
+const isFilesystemPath = (filename: string) => {
+    return filename[0] === '.' || filename[0] === '/' || filename[1] === ':';
+};
+
+/**
  * Looks for a hint resource with the given `name` and tries to load it.
  * If no valid resource is found, it throws an `Error`.
  *
@@ -187,7 +196,7 @@ const generateConfigPathsToResources = (configurations: string[], name: string, 
  */
 export const loadResource = (name: string, type: ResourceType, configurations: string[] = [], verifyVersion = false) => {
     debug(`Searching ${name}…`);
-    const isSource = fs.existsSync(name); // eslint-disable-line no-sync
+    const isSource = isFilesystemPath(name) && fs.existsSync(name); // eslint-disable-line no-sync
     const isPackage = isFullPackageName(name, type);
     const nameParts = name.split('/');
 

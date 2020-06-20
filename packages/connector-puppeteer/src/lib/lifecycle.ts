@@ -6,7 +6,8 @@ import { spawn } from 'child_process';
 import * as locker from 'lockfile';
 import * as puppeteer from 'puppeteer-core';
 
-import { debug as d, fs } from '@hint/utils';
+import { readFileAsync, writeFileAsync } from '@hint/utils-fs';
+import { debug as d } from '@hint/utils-debug';
 import { LaunchOptions } from 'puppeteer-core';
 
 const debug: debug.IDebugger = d(__filename);
@@ -15,8 +16,6 @@ const lockFile = promisify(locker.lock) as (path: string, options: locker.Option
 const unlockFile = promisify(locker.unlock);
 const lockName = 'puppeteer-connector.lock';
 let isLocked = false;
-
-const { readFileAsync, writeFileAsync } = fs;
 
 const infoFile = 'browser.info';
 const TIMEOUT = 30000;
@@ -52,6 +51,7 @@ const lock = async () => {
 };
 
 const unlock = async () => {
+    /* istanbul ignore else */
     if (isLocked) {
         const start = Date.now();
 
@@ -80,6 +80,7 @@ const getBrowserInfo = async (): Promise<BrowserInfo | null> => {
 };
 
 /** Stores the `BrowserInfo` into a file. */
+/* istanbul ignore next */
 const writeBrowserInfo = async (browser: puppeteer.Browser) => {
     const browserWSEndpoint = browser.wsEndpoint();
     const browserInfo = { browserWSEndpoint };
@@ -88,6 +89,7 @@ const writeBrowserInfo = async (browser: puppeteer.Browser) => {
 };
 
 /** Deletes the file containing the `BrowserInfo`. */
+/* istanbul ignore next */
 const deleteBrowserInfo = async () => {
     try {
         await deleteFile(infoFile);
@@ -97,20 +99,31 @@ const deleteBrowserInfo = async () => {
     }
 };
 
+/**
+ * Connects to an existing browser and creates a new page that will disable the cache and
+ * use a new incognito context. This is not needed in regular mode as `puppeteer` creates
+ * a new temporary profile each time.
+ *
+ * This should only be used when running in `detached` mode.
+ */
 const connectToBrowser = async (currentInfo: BrowserInfo, options: LifecycleLaunchOptions) => {
     const connectOptions = { ...currentInfo, ...options };
 
     const browser = await puppeteer.connect(connectOptions);
 
     debug(`Creating new page in existing browser`);
-    const page = await browser.newPage();
 
+    const context = await browser.createIncognitoBrowserContext();
+    const page = await context.newPage();
+
+    page.setCacheEnabled(false);
     page.setDefaultTimeout(options.timeout || TIMEOUT);
 
     return { browser, page };
 };
 
 /** Spawns a new detached process that will start a browser using puppeteer. */
+/* istanbul ignore next */
 const startDetached = (options: LifecycleLaunchOptions): Promise<puppeteer.Browser> => {
     return new Promise((resolve) => {
         const launcherProcess = spawn(
@@ -135,6 +148,7 @@ const startDetached = (options: LifecycleLaunchOptions): Promise<puppeteer.Brows
     });
 };
 
+/* istanbul ignore next */
 const startBrowser = async (options: LifecycleLaunchOptions) => {
     debug(`Launching new browser instance`);
 
@@ -180,18 +194,28 @@ ${JSON.stringify(options, null, 2)}
 export const launch = async (options: LifecycleLaunchOptions) => {
     await lock();
 
-    const currentInfo = await getBrowserInfo();
+    /**
+     * Only try to connect to an existing browser when in detached mode,
+     * otherwise the browser will be closed when one of the puppeteer
+     * instances finishes.
+     */
+    /* istanbul ignore else */
+    if (options.detached) {
 
-    if (currentInfo) {
-        try {
-            const connection = await connectToBrowser(currentInfo, options);
+        const currentInfo = await getBrowserInfo();
 
-            await unlock();
+        /* istanbul ignore else */
+        if (currentInfo) {
+            try {
+                const connection = await connectToBrowser(currentInfo, options);
 
-            return connection;
-        } catch (e) {
-            // `currentInfo` contains outdated data: delete information and start fresh
-            await deleteBrowserInfo();
+                await unlock();
+
+                return connection;
+            } catch (e) /* istanbul ignore next */ {
+                // `currentInfo` contains outdated data: delete information and start fresh
+                await deleteBrowserInfo();
+            }
         }
     }
 
@@ -206,7 +230,7 @@ export const launch = async (options: LifecycleLaunchOptions) => {
         await unlock();
 
         return connection;
-    } catch (e) /* istanbul ignore next */ {
+    } catch (e) {
         debug('Error launching browser');
         debug(e);
 
@@ -233,6 +257,7 @@ export const close = async (browser: puppeteer.Browser, page: puppeteer.Page) =>
         debug(`Closing page`);
         debug(`Remaining pages: ${pages.length - 1}`);
 
+        /* istanbul ignore if */
         if (pages.length === 1) {
             /**
              * We have to manually close the browser because on macOS non headless
@@ -244,7 +269,7 @@ export const close = async (browser: puppeteer.Browser, page: puppeteer.Page) =>
         } else {
             await page.close();
         }
-    } catch (e) {
+    } catch (e) /* istanbul ignore next */ {
         debug(`Error closing page`);
         debug(e);
     } finally {

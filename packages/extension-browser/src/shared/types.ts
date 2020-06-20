@@ -1,10 +1,11 @@
-import { Category } from 'hint/dist/src/lib/enums/category';
-import { FetchEnd, FetchStart, Problem } from 'hint/dist/src/lib/types';
+import { Category, Problem } from '@hint/utils-types';
+import { FetchEnd, FetchStart } from 'hint/dist/src/lib/types';
 
 export type Config = {
     disabledCategories?: string[];
     browserslist?: string;
     ignoredUrls?: string;
+    severityThreshold?: string;
 };
 
 export type ErrorData = {
@@ -34,10 +35,23 @@ export type Results = {
     url: string;
 };
 
+export type EvaluateRequest = {
+    id: string;
+    code: string;
+};
+
+export type EvaluateResult = {
+    id: string;
+    err?: any;
+    value?: any;
+}
+
 export type Events = {
     config?: Config;
     enable?: InjectDetails;
     error?: ErrorData;
+    evaluate?: EvaluateRequest;
+    evaluateResult?: EvaluateResult;
     fetchEnd?: FetchEnd;
     fetchStart?: FetchStart;
     done?: boolean;

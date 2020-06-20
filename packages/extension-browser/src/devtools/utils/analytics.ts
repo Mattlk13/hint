@@ -1,36 +1,89 @@
-import { ApplicationInsights } from '@microsoft/applicationinsights-web-basic';
-
 import { Config, ErrorData, Results } from '../../shared/types';
 
+import { getUpdatedActivity, initTelemetry, updateTelemetry, trackEvent } from '@hint/utils-telemetry';
 import { determineHintStatus } from './hints';
+import * as localstore from './storage';
 
 const manifest = require('../../manifest.json');
+const activityKey = 'webhint-activity';
+const storageKey = 'webhint-telemetry';
+const alreadyOptInKey = 'webhint-already-opt-in';
 
-const instrumentationKey = '8ef2b55b-2ce9-4c33-a09a-2c3ef605c97d';
+/** Check if telemetry is enabled */
+export const enabled = (storage = localstore) => {
+    return !!storage.getItem(storageKey);
+};
 
-let appInsights: ApplicationInsights;
+initTelemetry({
+    defaultProperties: { 'extension-version': manifest.version },
+    enabled: enabled(),
+    post: async (url, data) => {
+        const response = await fetch(url, { body: data, method: 'POST' });
 
-const trackEvent = (name: string, properties: { [key: string]: string } = {}, measurements?: { [key: string]: number }) => {
-    if (!appInsights) {
-        return;
+        return response.status;
     }
+});
 
-    properties['extension-version'] = manifest.version;
-
-    appInsights.track({
-        baseData: {
-            measurements,
-            name,
-            properties
-        },
-        baseType: 'EventData',
-        name: `Microsoft.ApplicationInsights.${instrumentationKey}.Event`
-    });
+/**
+ * Return true if the user has not respond yet
+ * to opt-in.
+ */
+export const showOptIn = (storage = localstore) => {
+    return storage.getItem(storageKey) === undefined;
 };
 
 /** Called to initialize the underlying analytics library. */
-export const setup = () => {
-    appInsights = new ApplicationInsights({ instrumentationKey });
+export const setup = (storage = localstore) => {
+    const telemetry = storage.getItem(storageKey);
+
+    if (!telemetry) {
+        console.log('telemetry disabled');
+        updateTelemetry(false);
+
+        return;
+    }
+
+    console.log('telemetry enabled');
+    updateTelemetry(true);
+};
+
+/** Enables telemetry */
+export const enable = (storage = localstore) => {
+    storage.setItem(storageKey, true);
+
+    setup(storage);
+
+    // If it is the first time the user enable telemetry
+    if (!storage.getItem(alreadyOptInKey)) {
+        storage.setItem(alreadyOptInKey, true);
+        trackEvent('f12-telemetry');
+    }
+};
+
+/** Disables telemetry */
+export const disable = (storage = localstore) => {
+    storage.setItem(storageKey, false);
+
+    setup(storage);
+};
+
+/**
+ * Report once per UTC day that a user is active (has run a scan).
+ * Data includes `last28Days` (e.g. `"1001100110011001100110011001"`)
+ * and `lastUpdated` (e.g. `"2019-10-04T00:00:00.000Z"`).
+ */
+const trackActive = (storage = localstore) => {
+    // Don't count a user as active if telemetry is disabled.
+    if (!enabled(storage)) {
+        return;
+    }
+
+    const activity = getUpdatedActivity(storage.getItem(activityKey));
+
+    if (activity) {
+        storage.setItem(activityKey, activity);
+        trackEvent('f12-activity', activity);
+    }
 };
 
 /** Called when analysis was canceled by the user. */
@@ -60,6 +113,7 @@ export const trackShow = () => {
 /** Called when analysis was started by the user. */
 export const trackStart = () => {
     trackEvent('f12-start');
+    trackActive();
 };
 
 /** Called when analysis fails to complete in the allotted time. */

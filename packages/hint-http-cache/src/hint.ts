@@ -2,14 +2,14 @@
  * @fileoverview Checks if your cache-control header and asset strategy follows best practices
  */
 
-import { debug as d } from '@hint/utils/dist/src/debug';
-import { isDataURI } from '@hint/utils/dist/src/network/is-data-uri';
-import { normalizeHeaderValue } from '@hint/utils/dist/src/network/normalize-header-value';
+import { debug as d } from '@hint/utils-debug';
+import { isDataURI, normalizeHeaderValue } from '@hint/utils-network';
 import { IHint, FetchEnd } from 'hint/dist/src/lib/types';
 import { HintContext } from 'hint/dist/src/lib/hint-context';
 
 import meta from './meta';
 import { getMessage } from './i18n.import';
+import { Severity } from '@hint/utils-types';
 
 const debug = d(__filename);
 
@@ -27,6 +27,34 @@ export default class HttpCacheHint implements IHint {
     public static readonly meta = meta;
 
     public constructor(context: HintContext) {
+
+        const immutableEdgeVersions = [
+            'edge 15',
+            'edge 16',
+            'edge 17',
+            'edge 18'
+        ];
+
+        /**
+         * https://caniuse.com/#search=immutable shows as starting:
+         * * Firefox 49
+         * * Edge 15 (supports stops with Chromium based one)
+         * * Safari 11 (destkop and iOS)
+         *
+         * Firefox and Safari versions are old enough that we can assume
+         * support for any version
+         */
+        const immutableSupported = context.targetedBrowsers.some((browser) => {
+            if (immutableEdgeVersions.includes(browser)) {
+                return true;
+            }
+
+            if (browser.startsWith('firefox') || browser.includes('safari')) {
+                return true;
+            }
+
+            return false;
+        });
 
         /**
          * Max time the HTML of a page can be cached.
@@ -123,6 +151,11 @@ export default class HttpCacheHint implements IHint {
             const parsedCacheControlHeader = usedDirectives.reduce((parsed: ParsedDirectives, current: string) => {
                 const [directive, value] = current.split('=');
 
+                // Empty string, e.g. `cache-control: max-age=12345,` --> `['max-age=123456', '']`
+                if (!directive) {
+                    return parsed;
+                }
+
                 // Validate directive with value. E.g.: max-age=<seconds>
                 if (directive && value) {
                     /*
@@ -187,16 +220,19 @@ export default class HttpCacheHint implements IHint {
             directives.forEach((val, key) => {
 
                 if (str.length > 0) {
-                    str += '\n';
+                    str += ', ';
                 }
 
-                str += key;
-                if (val) {
-                    str += `=${val}`;
-                }
+                str += `'${key}${val ? `=${val}` : ''}'`;
             });
 
             return str;
+        };
+
+        const joinAndQuote = (strings: string[]) => {
+            return strings.map(string => {
+                return `'${string}'`;
+            }).join(', ');
         };
 
         /**
@@ -227,16 +263,12 @@ export default class HttpCacheHint implements IHint {
         /**
          * Prevents agains the usage of non recommended directives (`must-revalidate`)
          */
-        const nonRecommendedDirectives = (directives: Directives): string | null => {
+        const nonRecommendedDirectives = (directives: Directives): string[] => {
             const noDirectives = ['must-revalidate', 'no-store'];
 
-            for (const noDirective of noDirectives) {
-                if (directives.has(noDirective)) {
-                    return noDirective;
-                }
-            }
-
-            return null;
+            return noDirectives.filter((noDirective) => {
+                return directives.has(noDirective);
+            });
         };
 
         /*
@@ -249,7 +281,11 @@ export default class HttpCacheHint implements IHint {
             const cacheControl: string | null = headers && headers['cache-control'] || null;
 
             if (!cacheControl) {
-                context.report(resource, getMessage('noHeaderFound', context.language));
+                context.report(
+                    resource,
+                    getMessage('noHeaderFound', context.language),
+                    { severity: Severity.error }
+                );
 
                 return false;
             }
@@ -267,24 +303,25 @@ export default class HttpCacheHint implements IHint {
             const codeLanguage = 'http';
 
             if (invalidDirectives.size > 0) {
-                const message: string = getMessage('directiveInvalid', context.language, [
-                    invalidDirectives.size === 1 ? 'directive' : 'directives',
-                    Array.from(invalidDirectives.keys()).join(', '),
-                    invalidDirectives.size === 1 ? 'is' : 'are'
-                ]);
+                const message: string = getMessage('directiveInvalid', context.language, joinAndQuote(Array.from(invalidDirectives.keys())));
 
-                context.report(resource, message, { codeLanguage, codeSnippet });
+                context.report(
+                    resource,
+                    message,
+                    { codeLanguage, codeSnippet, severity: Severity.error }
+                );
 
                 return false;
             }
 
             if (invalidValues.size > 0) {
-                const message: string = getMessage('directiveInvalidValue', context.language, [
-                    invalidValues.size === 1 ? 'directive has' : 'directives have',
-                    directivesToString(invalidValues)
-                ]);
+                const message: string = getMessage('directiveInvalidValue', context.language, directivesToString(invalidValues));
 
-                context.report(resource, message, { codeLanguage, codeSnippet });
+                context.report(
+                    resource,
+                    message,
+                    { codeLanguage, codeSnippet, severity: Severity.error }
+                );
 
                 return false;
             }
@@ -298,12 +335,20 @@ export default class HttpCacheHint implements IHint {
         const hasNoneNonRecommendedDirectives = (directives: ParsedDirectives, fetchEnd: FetchEnd): boolean => {
             const { header, usedDirectives } = directives;
             const { resource } = fetchEnd;
-            const nonRecommendedDirective = nonRecommendedDirectives(usedDirectives);
+            const flaggedDirectives = nonRecommendedDirectives(usedDirectives);
 
-            if (nonRecommendedDirective) {
-                const message: string = getMessage('directiveNotRecomended', context.language, nonRecommendedDirective);
+            if (flaggedDirectives.length) {
+                const message: string = getMessage('directiveNotRecomended', context.language, joinAndQuote(flaggedDirectives));
 
-                context.report(resource, message, { codeLanguage: 'http', codeSnippet: `Cache-Control: ${header}` });
+                context.report(
+                    resource,
+                    message,
+                    {
+                        codeLanguage: 'http',
+                        codeSnippet: `Cache-Control: ${header}`,
+                        severity: Severity.warning
+                    }
+                );
 
                 return false;
             }
@@ -322,9 +367,17 @@ export default class HttpCacheHint implements IHint {
                 const hasMaxAge = (usedDirectives.has('max-age') || usedDirectives.has('s-maxage'));
 
                 if (hasMaxAge) {
-                    const message: string = getMessage('wrongCombination', context.language, header);
+                    const message: string = getMessage('wrongCombination', context.language);
 
-                    context.report(fetchEnd.resource, message, { codeLanguage: 'http', codeSnippet: `Cache-Control: ${header}` });
+                    context.report(
+                        fetchEnd.resource,
+                        message,
+                        {
+                            codeLanguage: 'http',
+                            codeSnippet: `Cache-Control: ${header}`,
+                            severity: Severity.error
+                        }
+                    );
 
                     return false;
                 }
@@ -346,9 +399,37 @@ export default class HttpCacheHint implements IHint {
             const isValidCache = compareToMaxAge(usedDirectives, maxAgeTarget) <= 0;
 
             if (!isValidCache) {
-                const message: string = getMessage('targetShouldNotBeCached', context.language, [maxAgeTarget, header]);
+                const message: string = getMessage('targetShouldNotBeCached', context.language, `${maxAgeTarget}`);
 
-                context.report(fetchEnd.resource, message, { codeLanguage: 'http', codeSnippet: `Cache-Control')}: ${header}` });
+                context.report(
+                    fetchEnd.resource,
+                    message,
+                    {
+                        codeLanguage: 'http',
+                        codeSnippet: `Cache-Control: ${header}`,
+                        severity: Severity.warning
+                    }
+                );
+
+                return false;
+            }
+
+            return true;
+        };
+
+        /**
+         * Validates that a resource (JS, CSS, images, etc.) is using the right file revving format.
+         */
+        const usesFileRevving = (directives: ParsedDirectives, fetchEnd: FetchEnd): boolean => {
+            const { element, resource } = fetchEnd;
+            const matches = cacheRevvingPatterns.find((pattern) => {
+                return !!resource.match(pattern);
+            });
+
+            if (!matches) {
+                const message: string = getMessage('noCacheBustingPattern', context.language);
+
+                context.report(resource, message, { element, severity: Severity.warning });
 
                 return false;
             }
@@ -367,46 +448,34 @@ export default class HttpCacheHint implements IHint {
 
             const longCache = compareToMaxAge(usedDirectives, maxAgeResource) >= 0;
             const immutable = usedDirectives.has('immutable');
+
+
+            const isCacheBusted = usesFileRevving(directives, fetchEnd);
+
             let validates = true;
 
             // We want long caches with "immutable" for static resources
             if (usedDirectives.has('no-cache') || !longCache) {
-                const message: string = getMessage('staticResourceCacheValue', context.language, [maxAgeResource, header]);
+                const message: string = getMessage('staticResourceCacheValue', context.language, `${maxAgeResource}`);
 
-                context.report(resource, message, { codeLanguage, codeSnippet });
+                const severity = isCacheBusted ? Severity.warning : Severity.hint;
+
+                context.report(resource, message, { codeLanguage, codeSnippet, severity });
 
                 validates = false;
             }
 
             if (!immutable) {
-                const message: string = getMessage('staticNotImmutable', context.language, header);
 
-                context.report(resource, message, { codeLanguage, codeSnippet });
+                const message: string = getMessage('staticNotImmutable', context.language);
+                const severity = immutableSupported && isCacheBusted ? Severity.warning : Severity.hint;
+
+                context.report(resource, message, { codeLanguage, codeSnippet, severity });
 
                 validates = false;
             }
 
             return validates;
-        };
-
-        /**
-         * Validates that a resource (JS, CSS, images, etc.) is using the right file revving format.
-         */
-        const usesFileRevving = (directives: ParsedDirectives, fetchEnd: FetchEnd): boolean => {
-            const { element, resource } = fetchEnd;
-            const matches = cacheRevvingPatterns.find((pattern) => {
-                return !!resource.match(pattern);
-            });
-
-            if (!matches) {
-                const message: string = getMessage('noCacheBustingPattern', context.language, resource);
-
-                context.report(resource, message, { element });
-
-                return false;
-            }
-
-            return true;
         };
 
         const validate = (fetchEnd: FetchEnd, eventName: string) => {
@@ -436,8 +505,6 @@ export default class HttpCacheHint implements IHint {
             if (type === 'html') {
                 validators.push(hasSmallCache);
             } else if (type === 'fetch' && longCached.includes(mediaType)) {
-                validators.push(hasLongCache);
-
                 // Check if there are custom revving patterns
                 let customRegex: RegExp[] | null = context.hintOptions && context.hintOptions.revvingPatterns || null;
 
@@ -449,7 +516,7 @@ export default class HttpCacheHint implements IHint {
 
                 cacheRevvingPatterns = customRegex || predefinedRevvingPatterns;
 
-                validators.push(usesFileRevving);
+                validators.push(hasLongCache);
             }
 
             validators.every((validator) => {

@@ -3,7 +3,9 @@ import * as sinon from 'sinon';
 import anyTest, { TestInterface, ExecutionContext } from 'ava';
 
 import * as utils from '@hint/utils';
-import { Problem, Severity } from '@hint/utils/dist/src/types/problems';
+import { HintsConfigObject, UserConfig } from '@hint/utils';
+import { Problem, Severity } from '@hint/utils-types';
+import * as network from '@hint/utils-network';
 
 import {
     AnalyzeOptions,
@@ -11,9 +13,7 @@ import {
     AnalyzerResult,
     CLIOptions,
     CreateAnalyzerOptions,
-    Endpoint,
-    UserConfig,
-    HintsConfigObject
+    Endpoint
 } from '../../../src/lib/types';
 import { AnalyzerErrorStatus } from '../../../src/lib/enums/error-status';
 
@@ -52,9 +52,7 @@ type Spinner = {
     text: string;
 };
 
-type Ora = {
-    default: () => Spinner;
-};
+type Ora = () => Spinner;
 
 type Analyzer = {
     Analyzer: () => void;
@@ -108,10 +106,8 @@ const initContext = (t: ExecutionContext<AnalyzeContext>) => {
     t.context.logSpy = sandbox.spy(t.context.logger, 'log');
     t.context.errorSpy = sandbox.spy(t.context.logger, 'error');
     t.context.spinner = spinner;
-    t.context.ora = {
-        default() {
-            return spinner;
-        }
+    t.context.ora = () => {
+        return spinner;
     };
     t.context.startSpy = sandbox.spy(spinner, 'start');
     t.context.failSpy = sandbox.spy(spinner, 'fail');
@@ -163,21 +159,16 @@ const loadScript = (context: AnalyzeContext, isCi: boolean = false) => {
         },
         '@hint/utils': {
             appInsights: context.appInsight,
+            askQuestion: context.askQuestion,
             configStore: utils.configStore,
-            debug: utils.debug,
             getHintsFromConfiguration: context.getHintsFromConfiguration,
+            installPackages: utils.installPackages,
             logger: context.logger,
-            misc: {
-                askQuestion: context.askQuestion,
-                cutString: utils.misc.cutString,
-                mergeEnvWithOptions: (options: any) => {
-                    return options;
-                }
-            },
-            network: utils.network,
-            npm: utils.npm,
-            packages: utils.packages
+            mergeEnvWithOptions: (options: any) => {
+                return options;
+            }
         },
+        '@hint/utils-network': network,
         'is-ci': isCi,
         ora: context.ora
     });
@@ -207,6 +198,22 @@ test('If there is no valid user config, it should use `web-recommended` as defau
     t.deepEqual(createAnalyzerStub.args[0][0], { extends: ['web-recommended'], language: 'en-US' });
 });
 
+test('If there is no valid user config, it should use `web-recommended` as default configuration and use formatters `stylish` and `html` if it is running in CI', async (t) => {
+    const sandbox = t.context.sandbox;
+
+    const createAnalyzerStub = sandbox.stub(t.context.analyzer.Analyzer as any, 'create').returns(new FakeAnalyzer());
+
+    sandbox.stub(t.context.analyzer.Analyzer as any, 'getUserConfig').returns(null as any);
+    sandbox.stub(t.context, 'askQuestion').resolves(false);
+
+    const analyze = loadScript(t.context, true);
+
+    await analyze(actions);
+
+    t.true(createAnalyzerStub.calledOnce);
+    t.deepEqual(createAnalyzerStub.args[0][0], { extends: ['web-recommended'], formatters: ['html', 'stylish'], language: 'en-US' });
+});
+
 test('If there is no valid user config and the target is an existing filesystem path, it should use `development` as default configuration', async (t) => {
     const sandbox = t.context.sandbox;
 
@@ -221,6 +228,22 @@ test('If there is no valid user config and the target is an existing filesystem 
 
     t.true(createAnalyzerStub.calledOnce);
     t.deepEqual(createAnalyzerStub.args[0][0], { extends: ['development'], language: 'en-US' });
+});
+
+test('If there is no valid user config and the target is an existing filesystem path, it should use `development` as default configuration and use formatters `stylish` and `html` if it is running in CI', async (t) => {
+    const sandbox = t.context.sandbox;
+
+    const createAnalyzerStub = sandbox.stub(t.context.analyzer.Analyzer as any, 'create').returns(new FakeAnalyzer());
+
+    sandbox.stub(t.context.analyzer.Analyzer as any, 'getUserConfig').returns(null as any);
+    sandbox.stub(t.context, 'askQuestion').resolves(false);
+
+    const analyze = loadScript(t.context, true);
+
+    await analyze(actionsFS);
+
+    t.true(createAnalyzerStub.calledOnce);
+    t.deepEqual(createAnalyzerStub.args[0][0], { extends: ['development'], formatters: ['html', 'stylish'], language: 'en-US' });
 });
 
 test('If there is no valid user config and user refuses to use the default or to create a configuration file, it should exit with code 1', async (t) => {
@@ -432,9 +455,9 @@ test('If there is missing or incompatible packages, they should be tracked', asy
     }
 
     t.true(appInsightTrackEventSpy.calledTwice);
-    t.is(appInsightTrackEventSpy.args[0][0], 'missing');
+    t.is(appInsightTrackEventSpy.args[0][0], 'cli-missing');
     t.deepEqual(appInsightTrackEventSpy.args[0][1], ['hint1']);
-    t.is(appInsightTrackEventSpy.args[1][0], 'incompatible');
+    t.is(appInsightTrackEventSpy.args[1][0], 'cli-incompatible');
     t.deepEqual(appInsightTrackEventSpy.args[1][1], ['hint2']);
 });
 
@@ -445,7 +468,7 @@ test('If no sites are defined, it should return false', async (t) => {
     t.false(result);
 });
 
-test('If there is no errors analyzing the url, and it is the second time running a scan, and the user confirm telemetry, telemetry should be enabled', async (t) => {
+test('If there is no errors analyzing the url, webhint was previously run, and the user confirm telemetry, the payload should indicate it', async (t) => {
     const sandbox = t.context.sandbox;
     const fakeAnalyzer = new FakeAnalyzer();
 
@@ -467,9 +490,10 @@ test('If there is no errors analyzing the url, and it is the second time running
     const args = appInsightTrackEventSpy.args;
 
     t.true(appInsightEnableSpy.calledOnce);
-    t.true(appInsightTrackEventSpy.calledThrice);
-    t.is(args[1][0], 'SecondRun');
-    t.is(args[2][0], 'analyze');
+    t.true(appInsightTrackEventSpy.calledTwice);
+    t.is(args[0][0], 'cli-telemetry');
+    t.is(args[1][0], 'cli-analyze');
+    t.true(args[1][1].previouslyRun);
 });
 
 test('Telemetry should trim options from a connector', async (t) => {
@@ -477,6 +501,10 @@ test('Telemetry should trim options from a connector', async (t) => {
     const fakeAnalyzer = new FakeAnalyzer();
 
     sandbox.stub(t.context.analyzer.Analyzer as any, 'create').returns(fakeAnalyzer);
+    sandbox.stub(t.context.appInsight, 'isConfigured').returns(true);
+    sandbox.stub(t.context.appInsight, 'isEnabled').returns(true);
+    sandbox.stub(t.context.configStore, 'get').returns(true);
+
     sandbox.stub(fakeAnalyzer, 'analyze').resolves();
 
     sandbox.stub(t.context.analyzer.Analyzer as any, 'getUserConfig').returns({
@@ -498,10 +526,11 @@ test('Telemetry should trim options from a connector', async (t) => {
 
     await analyze(actions);
 
+    t.true(appInsightTrackEventSpy.calledOnce);
     t.falsy(appInsightTrackEventSpy.args[0][1].connector.options);
 });
 
-test('Telemetry should remove properties from rules', async (t) => {
+test('Telemetry should remove properties from rules and send the "cli-telemetry" when opting-in', async (t) => {
     const sandbox = t.context.sandbox;
     const fakeAnalyzer = new FakeAnalyzer();
 
@@ -530,8 +559,10 @@ test('Telemetry should remove properties from rules', async (t) => {
 
     await analyze(actions);
 
-    const hints = appInsightTrackEventSpy.args[0][1].hints;
 
+    const hints = appInsightTrackEventSpy.args[1][1].hints;
+
+    t.is(appInsightTrackEventSpy.args[0][0], 'cli-telemetry');
     t.is(hints.hint1, 'error');
     t.is(hints.hint2, 'warning');
 });

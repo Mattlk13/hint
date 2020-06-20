@@ -1,7 +1,6 @@
 import * as mock from 'mock-require';
-import * as utils from '@hint/utils';
-
-const { generateHTMLPage } = utils.test;
+import { generateHTMLPage } from '@hint/utils-create-server';
+import * as utilsNetwork from '@hint/utils-network';
 
 export const OkayMaxAge = 31536000; // a max-age value larger than the minimum
 export const smallMaxAge = 1; // a max-age value less than the minimum
@@ -32,18 +31,16 @@ export const hasErrors = { errors: [{ message: notPreloadableError }] };
 
 // error messages
 export const generateTooShortError = (value: number) => {
-    return `'${stsHeader}' header 'max-age' value should be more than ${value}`;
+    return `The '${stsHeader}' header 'max-age' value should be more than '${value}'.`;
 };
-export const noHeaderError = `'${stsHeader}' header was not specified`;
-export const noMaxAgeError = `'${stsHeader}' header requires 'max-age' directive`;
-export const multipleMaxAgeError = `'${stsHeader}' header contains more than one 'max-age'`;
-export const multipleincludeSubDomainsError = `'${stsHeader}' header contains more than one 'includesubdomains'`;
+export const noHeaderError = `The '${stsHeader}' header was not specified.`;
+export const noMaxAgeError = `The '${stsHeader}' header requires 'max-age' directive.`;
+export const duplicateDirectivesError = `The '${stsHeader}' header contains duplicate directives.`;
 export const tooShortErrorDefault = generateTooShortError(defaultMinimum);
-export const DelimiterwrongFormatError = `'${stsHeader}' header has the wrong format: max-age=31536000, includesubdomains`;
-export const UnitwrongFormatError = `'${stsHeader}' header has the wrong format: max-age=31536000s`;
-export const statusServiceError = `Error with getting preload status for https://localhost/.`;
-export const preloadableServiceError = `Error with getting preload eligibility for https://localhost/.`;
-export const problemWithVerificationEndpoint = `Error with getting preload status for https://localhost/. There might be something wrong with the verification endpoint.`;
+export const wrongFormatError = `The '${stsHeader}' header has the wrong format.`;
+export const statusServiceError = `Error getting preload status.`;
+export const preloadableServiceError = `Error getting preload eligibility.`;
+export const problemWithVerificationEndpoint = `Error getting preload status.`;
 
 // override favicon headers so that it doesn't report in chrome
 export const faviconHeaderMaxAgeOnly = {
@@ -62,9 +59,6 @@ export const htmlPageWithScriptData = generateHTMLPageData(generateHTMLPage(unde
 export const htmlPageWithManifestData = generateHTMLPageData(generateHTMLPage('<link rel="manifest" href="test.webmanifest">'));
 
 export const requestJSONAsyncMock = (responseObject: any) => {
-    const isDataURI = () => {
-        return false;
-    };
     const isHTTPS = () => {
         return true;
     };
@@ -84,17 +78,16 @@ export const requestJSONAsyncMock = (responseObject: any) => {
         }
 
         if (!response) {
-            return Promise.reject('Error with the verification service.');
+            return Promise.reject(new Error('Error with the verification service.'));
         }
 
         return Promise.resolve(response);
     };
 
-    (utils.network as any).isDataURI = isDataURI;
-    (utils.network as any).isRegularProtocol = isRegularProtocol;
+    (utilsNetwork as any).isRegularProtocol = isRegularProtocol;
+    (utilsNetwork as any).isHTTPS = isHTTPS;
+    (utilsNetwork as any).requestJSONAsync = requestJSONAsync;
 
-    mock('@hint/utils', utils);
-    mock('@hint/utils/dist/src/network/is-https', { isHTTPS });
-    mock('@hint/utils/dist/src/misc/normalize-string', { normalizeString });
-    mock('@hint/utils/dist/src/network/request-json-async', { requestJSONAsync });
+    mock('@hint/utils-network', utilsNetwork);
+    mock('@hint/utils-string', { normalizeString });
 };

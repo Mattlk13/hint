@@ -10,14 +10,16 @@ import {
     NetworkData,
     TraverseEnd
 } from 'hint';
-import { debug as d, HTMLElement, network } from '@hint/utils';
+import { Severity } from '@hint/utils-types';
+import { isRegularProtocol } from '@hint/utils-network';
+import { HTMLElement } from '@hint/utils-dom';
+import { debug as d } from '@hint/utils-debug';
 import { Requester } from '@hint/utils-connector-tools';
 import { CoreOptions } from 'request';
 
 import meta from './meta';
 import { getMessage } from './i18n.import';
 
-const { isRegularProtocol } = network;
 const debug: debug.IDebugger = d(__filename);
 
 /*
@@ -49,11 +51,44 @@ export default class NoBrokenLinksHint implements IHint {
                 return [];
             }
 
-            const urls = srcset
-                .split(',')
-                .map((entry) => {
-                    return element.resolveUrl((entry.trim().split(' ')[0].trim()));
-                });
+            /**
+             * If present, its value must consist of one or more image candidate strings, each separated from
+             * the next by a U+002C COMMA character (,). If an image candidate string contains no descriptors
+             * and no ASCII whitespace after the URL, the following image candidate string, if there is one,
+             * must begin with one or more ASCII whitespace.
+             * https://html.spec.whatwg.org/multipage/images.html#srcset-attributes
+             */
+            const urls: string[] = [];
+            const candidates = srcset.split(',');
+
+            for (let i = 0; i < candidates.length; i++) {
+                // First item is the URL, second the descriptor if present
+                const [imageCandidate] = candidates[i].trim().split(' ');
+
+                /**
+                 * `data:image/png;base64,PHN2ZyB4bWxucz0iaHR0`
+                 * In the case above `imageCandidate` will be
+                 * `data:image/png;base64` and there won't be
+                 * any descriptor as there are no spaces.
+                 *
+                 * The `data` will be the next item in `candidates`.
+                 * Because data URIs don't have to be checked
+                 * the next item can be skipped
+                 */
+                if (imageCandidate.startsWith('data:image')) {
+                    i++;
+
+                    continue;
+                }
+
+                const imageCandidateUrl = element.resolveUrl(imageCandidate.trim());
+
+                if (isRegularProtocol(imageCandidateUrl)) {
+                    urls.push(imageCandidateUrl);
+
+                    continue;
+                }
+            }
 
             return urls;
         };
@@ -65,11 +100,17 @@ export default class NoBrokenLinksHint implements IHint {
         const handleRejection = (error: any, url: string, element: HTMLElement) => {
             debug(`Error accessing ${url}. ${JSON.stringify(error)}`);
 
-            if (typeof error === 'string' && error.toLowerCase().includes('loop')) {
-                return context.report(url, error, { element });
+            if (error.message && error.message.toLowerCase().includes('loop')) {
+                return context.report(url, error.message, { element, severity: Severity.error });
             }
 
-            return context.report(url, getMessage('brokenLinkFound', context.language), { element });
+            return context.report(
+                url,
+                getMessage('brokenLinkFound', context.language),
+                {
+                    element,
+                    severity: Severity.error
+                });
         };
 
         const isDNSOnlyResourceHint = (element: HTMLElement): boolean => {
@@ -100,7 +141,7 @@ export default class NoBrokenLinksHint implements IHint {
             if (statusIndex > -1) {
                 const message = getMessage('brokenLinkFoundStatusCode', context.language, brokenStatusCodes[statusIndex].toString());
 
-                return context.report(url, message, { element });
+                return context.report(url, message, { element, severity: Severity.error });
             }
 
             fetchedURLs.push({ status: networkData.response.statusCode, url });
@@ -146,7 +187,11 @@ export default class NoBrokenLinksHint implements IHint {
                         // `url` is malformed, e.g.: just "http://`
                         debug(err);
 
-                        context.report(value, getMessage('invalidURL', context.language));
+                        context.report(
+                            value,
+                            getMessage('invalidURL', context.language),
+                            { severity: Severity.error }
+                        );
                     }
                 }
 
@@ -186,7 +231,11 @@ export default class NoBrokenLinksHint implements IHint {
                     const statusIndex = brokenStatusCodes.indexOf(fetched.statusCode);
 
                     if (statusIndex > -1) {
-                        context.report(url, getMessage('brokenLinkFoundStatusCode', context.language, brokenStatusCodes[statusIndex].toString()));
+                        context.report(
+                            url,
+                            getMessage('brokenLinkFoundStatusCode', context.language, brokenStatusCodes[statusIndex].toString()),
+                            { severity: Severity.error }
+                        );
 
                         return Promise.resolve();
                     }

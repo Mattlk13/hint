@@ -7,9 +7,10 @@ import { URL } from 'url';
 
 import { HintContext, ReportOptions } from 'hint/dist/src/lib/hint-context';
 import { IHint, FetchEnd, ElementFound, NetworkData, Request, Response } from 'hint/dist/src/lib/types';
-import { debug as d } from '@hint/utils/dist/src/debug';
-import { normalizeString } from '@hint/utils/dist/src/misc/normalize-string';
-import { requestAsync } from '@hint/utils/dist/src/network/request-async';
+import { debug as d } from '@hint/utils-debug';
+import { normalizeString } from '@hint/utils-string';
+import { requestAsync } from '@hint/utils-network';
+import { Severity } from '@hint/utils-types';
 
 import { Algorithms, OriginCriteria, ErrorData, URLs } from './types';
 import meta from './meta';
@@ -57,7 +58,7 @@ export default class SRIHint implements IHint {
      * a `link` element that are not stylesheets and should be ignored.
      */
 
-    private isScriptOrLink(evt: FetchEnd): Promise<boolean> {
+    private isScriptOrLink(evt: FetchEnd) {
         debug('Is <script> or <link>?');
         const { element } = evt;
 
@@ -69,7 +70,7 @@ export default class SRIHint implements IHint {
 
         /* istanbul ignore if */
         if (!element) {
-            return Promise.resolve(false);
+            return false;
         }
 
         const nodeName = normalizeString(element.nodeName);
@@ -81,16 +82,16 @@ export default class SRIHint implements IHint {
          */
 
         if (nodeName === 'script') {
-            return Promise.resolve(!!element.getAttribute('src'));
+            return !!element.getAttribute('src');
         }
 
         if (nodeName === 'link') {
             const relValues = (normalizeString(element.getAttribute('rel'), ''))!.split(' '); // normalizeString won't return null as a default was passed.
 
-            return Promise.resolve(relValues.includes('stylesheet'));
+            return relValues.includes('stylesheet');
         }
 
-        return Promise.resolve(false);
+        return false;
     }
 
     private report(resource: string, message: string, options: ReportOptions, evt: FetchEnd) {
@@ -117,43 +118,43 @@ export default class SRIHint implements IHint {
      *
      * More info in https://w3c.github.io/webappsec-subresource-integrity/#is-response-eligible
      */
-    private isEligibleForIntegrityValidation(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private isEligibleForIntegrityValidation(evt: FetchEnd, urls: URLs) {
         debug('Is eligible for integrity validation?');
 
         const { element, resource } = evt;
         const resourceOrigin: string = new URL(resource).origin;
 
         if (urls.origin === resourceOrigin) {
-            return Promise.resolve(true);
+            return true;
         }
 
         // cross-origin scripts need to be loaded with a valid "crossorigin" attribute (ie.: anonymous or use-credentials)
         const crossorigin = normalizeString(element && element.getAttribute('crossorigin'));
 
         if (!crossorigin) {
-            const message = getMessage('crossoriginNeeded', this.context.language, resource);
+            const message = getMessage('crossoriginNeeded', this.context.language);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.error }, evt);
 
-            return Promise.resolve(false);
+            return false;
         }
 
         const validCrossorigin = crossorigin === 'anonymous' || crossorigin === 'use-credentials';
 
         if (!validCrossorigin) {
-            const message = getMessage('crossoriginInvalid', this.context.language, [resource, crossorigin]);
+            const message = getMessage('crossoriginInvalid', this.context.language);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.error }, evt);
         }
 
-        return Promise.resolve(validCrossorigin);
+        return validCrossorigin;
     }
 
     /**
      * Checks if the element that triggered the download has the `integrity`
      * attribute if required based on the selected origin criteria.
      */
-    private hasIntegrityAttribute(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private hasIntegrityAttribute(evt: FetchEnd, urls: URLs) {
         debug('has integrity attribute?');
         const { element, resource } = evt;
         const integrity = element && element.getAttribute('integrity');
@@ -163,12 +164,12 @@ export default class SRIHint implements IHint {
             urls.origin !== resourceOrigin;
 
         if (integrityRequired && !integrity) {
-            const message = getMessage('noIntegrity', this.context.language, resource);
+            const message = getMessage('noIntegrity', this.context.language);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.warning }, evt);
         }
 
-        return Promise.resolve(!!integrity);
+        return !!integrity;
     }
 
     /**
@@ -186,9 +187,9 @@ export default class SRIHint implements IHint {
      *
      * https://w3c.github.io/webappsec-subresource-integrity/#agility
      */
-    private isIntegrityFormatValid(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private isIntegrityFormatValid(evt: FetchEnd, urls: URLs) {
         debug('Is integrity attribute valid?');
-        const { element, resource } = evt;
+        const { element } = evt;
         const integrity = element && element.getAttribute('integrity');
         const integrityRegExp = /^sha(256|384|512)-/;
         const integrityValues = integrity ? integrity.split(/\s+/) : [];
@@ -201,9 +202,9 @@ export default class SRIHint implements IHint {
 
             if (!isValid) {
                 // integrity must exist since we're iterating over integrityValues
-                const message = getMessage('invalidIntegrity', this.context.language, [resource, integrity!.substr(0, 10)]);
+                const message = getMessage('invalidIntegrity', this.context.language);
 
-                that.report(urls.final, message, { element }, evt);
+                that.report(urls.final, message, { element, severity: Severity.error }, evt);
 
                 return false;
             }
@@ -218,19 +219,19 @@ export default class SRIHint implements IHint {
         });
 
         if (!areFormatsValid) {
-            return Promise.resolve(false);
+            return false;
         }
 
         const baseline = Algorithms[this.baseline];
         const meetsBaseline = highestAlgorithmPriority >= baseline;
 
         if (!meetsBaseline) {
-            const message = getMessage('algorightmNotMeetBaseline', this.context.language, [Algorithms[highestAlgorithmPriority], this.baseline, resource]);
+            const message = getMessage('algorithmNotMeetBaseline', this.context.language, [Algorithms[highestAlgorithmPriority], this.baseline]);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.warning }, evt);
         }
 
-        return Promise.resolve(meetsBaseline);
+        return meetsBaseline;
     }
 
     /**
@@ -238,19 +239,19 @@ export default class SRIHint implements IHint {
      *
      * More info: https://w3c.github.io/webappsec-subresource-integrity/#non-secure-contexts
      */
-    private isSecureContext(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private isSecureContext(evt: FetchEnd, urls: URLs) {
         debug('Is delivered on a secure context?');
         const { element, resource } = evt;
         const protocol = new URL(resource).protocol;
         const isSecure = protocol === 'https:';
 
         if (!isSecure) {
-            const message = getMessage('resourceNotSecure', this.context.language, resource);
+            const message = getMessage('resourceNotSecure', this.context.language);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.error }, evt);
         }
 
-        return Promise.resolve(isSecure);
+        return isSecure;
     }
 
     /**
@@ -261,9 +262,9 @@ export default class SRIHint implements IHint {
      *
      * More info: https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist
      */
-    private hasRightHash(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private hasRightHash(evt: FetchEnd, urls: URLs) {
         debug('Does it have the right hash?');
-        const { element, resource, response } = evt;
+        const { element, response } = evt;
         const integrity = element && element.getAttribute('integrity');
         const integrities = integrity ? integrity.split(/\s+/) : [];
         const calculatedHashes: Map<string, string> = new Map();
@@ -287,12 +288,12 @@ export default class SRIHint implements IHint {
                 hashes.push(`sha${key}-${value}`);
             });
 
-            const message = getMessage('hashDoesNotMatch', this.context.language, [resource, hashes.join(', '), integrities.join(', ')]);
+            const message = getMessage('hashDoesNotMatch', this.context.language);
 
-            this.report(urls.final, message, { element }, evt);
+            this.report(urls.final, message, { element, severity: Severity.error }, evt);
         }
 
-        return Promise.resolve(isOK);
+        return isOK;
     }
 
     private getCache(evt: FetchEnd): ErrorData[] {
@@ -323,7 +324,7 @@ export default class SRIHint implements IHint {
 
         /* istanbul ignore if */
         if (!element) {
-            return Promise.resolve(false);
+            return false;
         }
 
         const integrity = element.getAttribute('integrity');
@@ -334,7 +335,7 @@ export default class SRIHint implements IHint {
             this.cache.set(key, []);
         }
 
-        return Promise.resolve(true);
+        return true;
     }
 
     /**
@@ -349,10 +350,10 @@ export default class SRIHint implements IHint {
         if (resource.startsWith('file://')) {
             debug(`Ignoring local resource: ${resource}`);
 
-            return Promise.resolve(false);
+            return false;
         }
 
-        return Promise.resolve(true);
+        return true;
     }
 
     /**
@@ -361,7 +362,7 @@ export default class SRIHint implements IHint {
      * should report what we have in the cache after the
      * first 'scan::end'.
      */
-    private isInCache(evt: FetchEnd): Promise<boolean> {
+    private isInCache(evt: FetchEnd) {
         const cacheKey = this.getCacheKey(evt);
         const isInCache = this.cache.has(cacheKey);
 
@@ -372,10 +373,10 @@ export default class SRIHint implements IHint {
 
             this.reportedKeys.add(cacheKey);
 
-            return Promise.resolve(false);
+            return false;
         }
 
-        return Promise.resolve(!isInCache);
+        return !isInCache;
     }
 
     /**
@@ -396,7 +397,7 @@ export default class SRIHint implements IHint {
      * through the traverse of the dom and response.body.content will be ''. In this case,
      * we have to prevent the download of the resource.
      */
-    private async downloadContent(evt: FetchEnd, urls: URLs): Promise<boolean> {
+    private async downloadContent(evt: FetchEnd, urls: URLs) {
         const { resource, response, element } = evt;
 
         if (!requestAsync && !response.body.content) {
@@ -425,7 +426,11 @@ export default class SRIHint implements IHint {
         } catch (e) {
             debug(`Error accessing ${resource}. ${JSON.stringify(e)}`);
 
-            this.context.report(urls.final, getMessage('canNotGetResource', this.context.language, resource), { element });
+            this.context.report(
+                urls.final,
+                getMessage('canNotGetResource', this.context.language),
+                { element, severity: Severity.error }
+            );
 
             return false;
         }
@@ -491,10 +496,11 @@ export default class SRIHint implements IHint {
             response: { body: { content: '' } } as Response
         };
 
-        await this.validateResource(Object.assign(evt, {
+        await this.validateResource({
+            ...evt,
             request: content.request,
             response: content.response
-        }), {
+        }, {
             final: finalUrl,
             origin
         });

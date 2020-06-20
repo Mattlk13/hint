@@ -4,13 +4,14 @@
 import * as url from 'url';
 import { URL } from 'url'; // this is necessary to avoid TypeScript mixes types.
 
-import { debug as d, network } from '@hint/utils';
+import { isRegularProtocol } from '@hint/utils-network';
+import { debug as d } from '@hint/utils-debug';
 import { FetchEnd, HintContext, IHint, NetworkData } from 'hint';
+import { Severity } from '@hint/utils-types';
 
 import meta from './meta';
 import { getMessage } from './i18n.import';
 
-const { isRegularProtocol } = network;
 const debug = d(__filename);
 
 /*
@@ -40,9 +41,8 @@ export default class StrictTransportSecurityHint implements IHint {
          * HACK: Need to do a require here in order to be capable of mocking
          * when testing the hint and `import` doesn't work here.
          */
-        const { isHTTPS } = require('@hint/utils/dist/src/network/is-https');
-        const { normalizeString } = require('@hint/utils/dist/src/misc/normalize-string');
-        const { requestJSONAsync } = require('@hint/utils/dist/src/network/request-json-async');
+        const { isHTTPS, requestJSONAsync } = require('@hint/utils-network');
+        const { normalizeString } = require('@hint/utils-string');
 
         const loadHintConfigs = () => {
             minMaxAgeValue = (context.hintOptions && context.hintOptions.minMaxAgeValue) || 10886400; // 18 weeks
@@ -67,24 +67,34 @@ export default class StrictTransportSecurityHint implements IHint {
              */
             const tokenRegex = /^ *[!#$%&'*+.^_`|~0-9A-Za-z-]+$/; // Regex for single tokens. E.g.:  includesubdomains
 
-            directives.forEach((directive) => {
+            for (const directive of directives) {
                 const match = tokenRegex.exec(directive) || nameValuePairRegex.exec(directive);
 
                 if (!match) {
-                    throw new Error(getMessage('wrongFormat', context.language, directive));
+                    return {
+                        error: {
+                            message: getMessage('wrongFormat', context.language),
+                            severity: Severity.error
+                        }
+                    };
                 }
 
                 const [matchString, key, value] = match;
                 const name = key || matchString.trim();
 
                 if (parsedHeader[name]) {
-                    throw new Error(getMessage('moreThanOneName', context.language, name));
+                    return {
+                        error: {
+                            message: getMessage('moreThanOneName', context.language),
+                            severity: Severity.warning
+                        }
+                    };
                 }
 
                 parsedHeader[name] = value || 'true';
-            });
+            }
 
-            return parsedHeader;
+            return { parsedHeader };
         };
 
         const isUnderAgeLimit = (maxAge: string, limit: number): boolean => {
@@ -113,10 +123,10 @@ export default class StrictTransportSecurityHint implements IHint {
             try {
                 ({ status } = await isPreloaded(mainDomain) || await isPreloaded(originalDomain));
             } catch (err) {
-                const message = getMessage('errorPreloadStatus', context.language, resource);
+                const message = getMessage('errorPreloadStatus', context.language);
 
                 debug(message, err);
-                context.report(resource, message);
+                context.report(resource, message, { severity: Severity.error });
 
                 return issues;
             }
@@ -124,10 +134,10 @@ export default class StrictTransportSecurityHint implements IHint {
             debug(`Received preload status for ${resource}.`);
 
             if (!status) {
-                const message = getMessage('wrongVerification', context.language, getMessage('errorPreloadStatus', context.language, resource));
+                const message = getMessage('errorPreloadStatus', context.language);
 
                 debug(message);
-                context.report(resource, message);
+                context.report(resource, message, { severity: Severity.warning });
 
                 return issues;
             }
@@ -136,10 +146,10 @@ export default class StrictTransportSecurityHint implements IHint {
                 try {
                     issues = await issuesToPreload(mainDomain);
                 } catch (err) {
-                    const message = getMessage('errorPreloadEligibility', context.language, resource);
+                    const message = getMessage('errorPreloadEligibility', context.language);
 
                     debug(message, err);
-                    context.report(resource, message);
+                    context.report(resource, message, { severity: Severity.error });
                 }
 
                 debug(`Received preload eligibility for ${resource}.`);
@@ -156,7 +166,6 @@ export default class StrictTransportSecurityHint implements IHint {
             }
 
             const headerValue: string = normalizeString(response.headers && response.headers['strict-transport-security']);
-            let parsedHeader;
 
             if (!isHTTPS(resource) && headerValue) {
                 const message = getMessage('noOverHTTP', context.language);
@@ -164,7 +173,8 @@ export default class StrictTransportSecurityHint implements IHint {
                 context.report(resource, message, {
                     codeLanguage: 'http',
                     codeSnippet: `Strict-Transport-Security: ${headerValue}`,
-                    element
+                    element,
+                    severity: Severity.warning
                 });
 
                 return;
@@ -179,7 +189,7 @@ export default class StrictTransportSecurityHint implements IHint {
                     return;
                 }
 
-                const httpsResource = url.format(Object.assign(urlObject, { protocol: `https` }));
+                const httpsResource = url.format({ ...urlObject, protocol: `https` });
 
                 try {
                     const networkData: NetworkData = await context.fetchContent(httpsResource);
@@ -212,16 +222,34 @@ export default class StrictTransportSecurityHint implements IHint {
 
             // Check if the header `Strict-Transport-Security` is sent for resources served over HTTPS.
             if (!headerValue) {
-                context.report(resource, getMessage('noHeader', context.language), { element });
+                context.report(
+                    resource,
+                    getMessage('noHeader', context.language),
+                    {
+                        element,
+                        severity: Severity.error
+                    });
 
                 return;
             }
             // Parse header and report repetitive attributes
-            try {
-                parsedHeader = parse(headerValue);
-            } catch (err) {
-                context.report(resource, err.message, { element });
 
+            const { error, parsedHeader } = parse(headerValue);
+
+            if (error) {
+                context.report(
+                    resource,
+                    error.message,
+                    {
+                        element,
+                        severity: error.severity
+                    });
+
+                return;
+            }
+
+            // Required to make TS happy
+            if (!parsedHeader) {
                 return;
             }
 
@@ -231,7 +259,7 @@ export default class StrictTransportSecurityHint implements IHint {
 
                 if (errors) {
                     for (const error of errors) {
-                        context.report(resource, error.message, { element });
+                        context.report(resource, error.message, { element, severity: Severity.error });
                     }
 
                     return;
@@ -244,7 +272,7 @@ export default class StrictTransportSecurityHint implements IHint {
             if (!maxAge) {
                 const message = getMessage('requiresMaxAge', context.language);
 
-                context.report(resource, message, { element });
+                context.report(resource, message, { element, severity: Severity.error });
 
                 return;
             }
@@ -256,7 +284,8 @@ export default class StrictTransportSecurityHint implements IHint {
                 context.report(resource, message, {
                     codeLanguage: 'http',
                     codeSnippet: `Strict-Transport-Security: ${headerValue}`,
-                    element
+                    element,
+                    severity: Severity.warning
                 });
 
                 return;

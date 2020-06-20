@@ -5,7 +5,7 @@
 import * as Listr from 'listr';
 import { Arguments } from 'yargs';
 
-import { skipReasons, skipInstallation, skipIfAborted, skipIfError, skipIfForced, skipIfJustRelease } from './lib/skippers';
+import { skipReasons, skipInstallation, skipIfAborted, skipIfError, skipIfForced, skipIfJustRelease, skipIfSameVersion, skipIfTestMode, skipIfSkipVsce } from './lib/skippers';
 import { taskErrorWrapper } from './lib/utils';
 import { updateChangelogs } from './tasks/update-changelogs';
 import { updateThirdPartyResources } from './lib/update-3rd-party';
@@ -18,7 +18,7 @@ import { cleanUp } from './tasks/clean-up';
 import { runTests } from './tasks/run-tests';
 import { validateChanges } from './tasks/validate-changes';
 import { validateEnvironment } from './tasks/validate-environment';
-import { confirmRelease, release } from './tasks/release';
+import { confirmRelease, release, releaseForBrowser, releaseForVSCode } from './tasks/release';
 import { commitPackagesChanges } from './tasks/commit-packages-changes';
 import { authenticateGitHub } from './tasks/authenticate-github';
 import { cleanWorkspace } from './tasks/clean-workspace';
@@ -28,7 +28,7 @@ import { installDependencies } from './tasks/install-dependencies';
 import { updateConfigurationAll } from './tasks/update-configuration-all';
 import { Parameters } from './@types/custom';
 
-const ignoredPackages = ['extension-vscode', 'extension-browser'];
+const ignoredPackages: string[] = [];
 
 /** The tasks to be executed in sequential order. */
 const tasks = new Listr([
@@ -38,7 +38,7 @@ const tasks = new Listr([
     },
     {
         title: 'Authenticate in GitHub',
-        skip: skipReasons(skipIfError, skipIfJustRelease),
+        skip: skipReasons(skipIfError, skipIfJustRelease, skipIfTestMode),
         task: taskErrorWrapper(authenticateGitHub)
     },
     {
@@ -64,12 +64,7 @@ const tasks = new Listr([
     {
         title: 'Calculate new versions',
         skip: skipReasons(skipIfError, skipIfJustRelease),
-        task: calculateNewVersions
-    },
-    {
-        title: 'Update changelogs',
-        skip: skipReasons(skipIfError, skipIfJustRelease),
-        task: updateChangelogs()
+        task: taskErrorWrapper(calculateNewVersions)
     },
     {
         title: 'Save changes in disk',
@@ -93,6 +88,11 @@ const tasks = new Listr([
         task: taskErrorWrapper(installDependencies)
     },
     {
+        title: 'Update changelogs',
+        skip: skipReasons(skipIfError, skipIfJustRelease),
+        task: updateChangelogs()
+    },
+    {
         title: 'Commit changes',
         skip: skipReasons(skipIfError, skipIfAborted, skipIfJustRelease),
         task: taskErrorWrapper(commitPackagesChanges)
@@ -104,27 +104,47 @@ const tasks = new Listr([
     },
     {
         title: 'Build and test',
-        skip: skipReasons(skipIfError, skipIfAborted, skipIfJustRelease),
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfJustRelease, skipIfTestMode),
         task: runTests()
     },
     {
         title: 'Confirm npm publishing',
-        skip: skipReasons(skipIfError, skipIfAborted, skipIfForced),
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfForced, skipIfTestMode),
         task: confirmRelease
     },
     {
         title: 'Publish on npm',
-        skip: skipReasons(skipIfError, skipIfAborted),
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfTestMode),
         task: release()
     },
     {
+        title: 'Publish extension on Visual Studio Marketplace',
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfSkipVsce, skipIfSameVersion('vscode-webhint'), skipIfTestMode),
+        task: releaseForVSCode
+    },
+    {
+        title: 'Submit extension-browser for Chrome',
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfSameVersion('@hint/extension-browser'), skipIfTestMode),
+        task: releaseForBrowser('https://chrome.google.com/webstore/developer/dashboard')
+    },
+    {
+        title: 'Submit extension-browser for Edge (Chromium)',
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfSameVersion('@hint/extension-browser'), skipIfTestMode),
+        task: releaseForBrowser('https://partner.microsoft.com/en-us/dashboard/microsoftedge/')
+    },
+    {
+        title: 'Submit extension-browser for Firefox',
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfSameVersion('@hint/extension-browser'), skipIfTestMode),
+        task: releaseForBrowser('https://addons.mozilla.org/en-US/developers/addons')
+    },
+    {
         title: 'Publish changes in GitHub',
-        skip: skipReasons(skipIfError, skipIfAborted, skipIfJustRelease),
+        skip: skipReasons(skipIfError, skipIfAborted, skipIfJustRelease, skipIfTestMode),
         task: pushChanges
     },
     {
         title: 'Deauthenticate GitHub',
-        skip: skipReasons(skipIfJustRelease),
+        skip: skipReasons(skipIfJustRelease, skipIfTestMode),
         task: deauthenticateGitHub
     },
     {

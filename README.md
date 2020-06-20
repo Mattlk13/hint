@@ -6,10 +6,17 @@
 
 ## Quick start user guide
 
-Once you have [`Node.js`][node] (v8.x or later) on your machine, you can use
-[`npx`][npx] or install `hint` globally to use it.
+webhint is a customizable linting tool that helps you improve your site's
+accessibility, speed, cross-browser compatibility, and more by checking your
+code for best practices and common errors.
 
-### Using `npx`
+It can be run from the command line (CLI), via a [browser extension][], as a
+[VS Code extension][], and from the [online service][].
+
+To use it from the from the CLI you will need to install [`Node.js`][node]
+(v10.x or later) on your machine, and you can use [`npx`][npx] to test it.
+
+### Testing with `npx`
 
 Run the following command:
 
@@ -19,74 +26,84 @@ npx hint https://example.com
 
 This will analyze `https://example.com` using the default configuration.
 
-### Installing `webhint` globally
+### Installing `webhint` locally
+
+Install webhint as a `devDependency` of your project:
 
 ```bash
-npm install -g --engine-strict hint
+npm install hint --save-dev
 ```
 
-Create a `.hintrc` file by running this command and following the
-instructions:
+And then add a script task to your `package.json`:
+
+```json
+{
+    ...
+    "scripts": {
+        "webhint": "hint"
+    }
+}
+```
+
+And run it via:
 
 ```bash
-npm create hintrc
+npm run webhint -- http://localhost:8080
 ```
 
-Choose configurations:
+Or if you are using `yarn` you can skip the step to create a task and
+run directly:
 
 ```bash
-❯ predefined
-  custom
+yarn hint http://localhost:8080
 ```
 
-Choose the configuration you want to extend from:
-
-```bash
-❯ development
-  web-recommended
-  progressive-web-apps
-```
-
-Scan a website:
-
-```bash
-hint https://example.com
-```
-
-To use a different formatter than the one specified in your `.hintrc`
-file you can do the following:
-
-```bash
-hint https://example.com --formatters excel
-```
-
-To use a different hint than the one specified in your `.hintrc` file:
-
-```bash
-hint https://example.com --hints html-checker
-```
-
-Multiple hints can be specified as a comma separated string:
-
-```bash
-hint https://example.com --hints axe,html-checker
-```
-
-For more in depth information on how to get started, configurations,
-and more, see the online [user guide][user guide], or the [local
-version][local user guide] for the most recent (and unstable) content.
+To know more about webhint, how to configure it, etc. see the online
+[user guide][user guide], or the [local version][local user guide]
+for the most recent content.
 
 ## Contributing to webhint
 
-To know more about the internals of `webhint`, the structure of the
-project, how to create new hints, collectors, formatters, etc, take
+This project follows a monorepo pattern. That means that the code
+for all the webhint flavors (CLI, browser and VS Code extension,
+hints, formatters, etc.) are in here and are published as separate
+npm packages.
+
+To build the project from the source you will need to install
+a recent version of node and [yarn][]. Once you've done this run
+the following from the root of your cloned version:
+
+```bash
+yarn
+yarn build
+```
+
+This can take a bit so please be patient.
+
+To learn more about the internals of `webhint`, the structure of the
+project, how to create new hints, parsers, formatters, etc, take
 a look at the online [contributor guide][contributor guide] (or the
 [local version][local contributor guide]).
 
+### Contributing to the browser and VS Code extensions
+
+To learn about how to build one of the extensions please check
+the `CONTRIBUTING.md` files for each of these packages:
+
+* [`packages/extension-browser/CONTRIBUTING.md`][contrib browser]
+  for the browser extension.
+* [`packages/extension-vscode/CONTRIBUTING.md`][contrib vscode]
+  for the VS Code extension.
+
 ## Code of Conduct
 
-This project adheres to the JS Foundation’s [code of conduct][coc].
-By participating in this project you agree to abide by its terms.
+All projects in the `webhintio` organization follow this [CoC][coc]
+which adheres to the [OpenJS Foundation Code of Conduct][ojs coc].
+
+## Other important links
+
+* [Charter][]
+* [Governance][]
 
 ## License
 
@@ -96,11 +113,20 @@ The code is available under the [Apache 2.0 license][license].
 
 <!-- Link labels: -->
 
-[coc]: https://js.foundation/community/code-of-conduct
+[browser extension]: https://webhint.io/docs/user-guide/extensions/extension-browser/
+[charter]: ./packages/hint/docs/about/PROJECT_CHARTER-draft.md
+[coc]: https://github.com/webhintio/.github/blob/master/CODE_OF_CONDUCT
+[contrib browser]: ./packages/extension-browser/CONTRIBUTING.md
+[contrib vscode]: ./packages/extension-vscode/CONTRIBUTING.md
 [contributor guide]: https://webhint.io/docs/contributor-guide/
+[Governance]: ./packages/hint/docs/about/GOVERNANCE-draft.md
+[license]: LICENSE.txt
 [local contributor guide]: ./packages/hint/docs/contributor-guide/index.md
 [local user guide]: ./packages/hint/docs/user-guide/index.md
 [node]: https://nodejs.org/en/download/current/
 [npx]: https://github.com/zkat/npx
+[ojs coc]: https://github.com/openjs-foundation/cross-project-council/blob/master/CODE_OF_CONDUCT.md
+[online service]: https://webhint.io/scanner/
 [user guide]: https://webhint.io/docs/user-guide/
-[license]: LICENSE.txt
+[VS Code extension]: https://webhint.io/docs/user-guide/extensions/vscode-webhint/
+[yarn]: http://yarnpkg.com/

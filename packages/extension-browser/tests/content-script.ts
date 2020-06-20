@@ -3,7 +3,7 @@ import * as proxyquire from 'proxyquire';
 import * as sinon from 'sinon';
 import test from 'ava';
 
-import { Category } from 'hint/dist/src/lib/enums/category';
+import { Category } from '@hint/utils-types';
 import { FetchEnd } from 'hint/dist/src/lib/types';
 
 import { Config, Events, Results } from '../src/shared/types';
@@ -107,6 +107,14 @@ const mockContext = () => {
                 MutationObserver: (dom.window as any).MutationObserver,
                 window: dom.window
             },
+            './evaluator': {
+                '@noCallThru': true,
+                Evaluator: class {
+                    public evaluateInPage(code: string) {
+                        return dom.window.eval(code);
+                    }
+                }
+            },
             './fetcher': {
                 '@noCallThru': true,
                 Fetcher: class {
@@ -120,6 +128,9 @@ const mockContext = () => {
 
         const connector = proxyquire(paths.connector, stubs);
         const formatter = proxyquire(paths.formatter, stubs);
+
+        connector['@noCallThru'] = true;
+        formatter['@noCallThru'] = true;
 
         proxyquire(paths.webhint, {
             './connector': connector,

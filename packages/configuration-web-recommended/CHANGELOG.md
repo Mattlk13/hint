@@ -1,3 +1,61 @@
+# 8.0.0 (December 2, 2019)
+
+## Breaking Changes
+
+* [[`9266b187e3`](https://github.com/webhintio/hint/commit/9266b187e3302600ad46729006f99dce0f6af67d)] - Breaking: Update configurations to use defaults.
+
+## New features
+
+* [[`362845f2c1`](https://github.com/webhintio/hint/commit/362845f2c146571c52fe967a714c6358bed476fa)] - New: Add formatter-json to default configs (see also: [`#3364`](https://github.com/webhintio/hint/issues/3364)).
+
+## Chores
+
+* [[`e9172328e7`](https://github.com/webhintio/hint/commit/e9172328e7494e6bba58f361ec83c24c37123840)] - Chore: Drop `engine` field in `package.json`.
+
+
+# 7.2.7 (October 29, 2019)
+
+
+# 7.2.6 (October 17, 2019)
+
+
+# 7.2.5 (October 16, 2019)
+
+
+# 7.2.4 (September 26, 2019)
+
+
+# 7.2.3 (September 24, 2019)
+
+## Bug fixes / Improvements
+
+* [[`9f13687ebb`](https://github.com/webhintio/hint/commit/9f13687ebbd3d929875cab5a9b9084cf608fa21f)] - Docs: Remove references to global install (by [`Antón Molleda`](https://github.com/molant) / see also: [`#2974`](https://github.com/webhintio/hint/issues/2974)).
+
+
+# 7.2.2 (September 19, 2019)
+
+
+# 7.2.1 (September 12, 2019)
+
+
+# 7.2.0 (September 11, 2019)
+
+## Bug fixes / Improvements
+
+* [[`5603617df9`](https://github.com/webhintio/hint/commit/5603617df96def7c2571c8e94d595b76ec4633ec)] - Fix: Reference correct package directory in monorepo (by [`Tony Ross`](https://github.com/antross) / see also: [`#2873`](https://github.com/webhintio/hint/issues/2873)).
+
+## New features
+
+* [[`90fe6d9d60`](https://github.com/webhintio/hint/commit/90fe6d9d60fed837e9b7ab27c61165413d8d1d84)] - New: Enable compat hints in default configurations (by [`Tony Ross`](https://github.com/antross) / see also: [`#2925`](https://github.com/webhintio/hint/issues/2925)).
+
+
+# 7.1.0 (August 29, 2019)
+
+## New features
+
+* [[`12afa7fcce`](https://github.com/webhintio/hint/commit/12afa7fcce1cb9d06b3ec4f7c6d63ca79d3ec2f9)] - New: Enable `hint-scoped-svg-styles` in default configurations (by [`Jaspreet Singh`](https://github.com/jaspreet57) / see also: [`#2852`](https://github.com/webhintio/hint/issues/2852)).
+
+
 # 7.0.4 (August 15, 2019)
 
 
