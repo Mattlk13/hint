@@ -44,7 +44,7 @@
     "@microsoft/applicationinsights-web-basic": "^2.2.0",
     "@types/chrome": "^0.0.86",
     "@types/har-format": "^1.2.4",
-    "@types/highlight.js": "^9.12.3",
+    "@types/highlight.js": "^10.1.0",
     "@types/is-ci": "^2.0.0",
     "@types/jsdom": "^12.2.3",
     "@types/node": "^12.6.9",
