@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "vscode-languageclient": "^5.2.1",
-    "vscode-languageserver": "^5.2.1"
+    "vscode-languageserver": "^7.0.0"
   },
   "description": "Run webhint in Visual Studio Code.",
   "devDependencies": {
