@@ -978,10 +978,17 @@
     "@types/glob" "*"
     "@types/node" "*"
 
-"@types/sinon@^7.0.13":
-  version "7.0.13"
-  resolved "https://registry.yarnpkg.com/@types/sinon/-/sinon-7.0.13.tgz#ca039c23a9e27ebea53e0901ef928ea2a1a6d313"
-  integrity sha512-d7c/C/+H/knZ3L8/cxhicHUiTDxdgap0b/aNJfsmLwFu/iOP17mdgbQsbHA3SJmrzsjD0l3UEE5SN4xxuz5ung==
+"@types/sinon@^9.0.11":
+  version "9.0.11"
+  resolved "https://registry.yarnpkg.com/@types/sinon/-/sinon-9.0.11.tgz#7af202dda5253a847b511c929d8b6dda170562eb"
+  integrity sha512-PwP4UY33SeeVKodNE37ZlOsR9cReypbMJOhZ7BVE0lB+Hix3efCOxiJWiE5Ia+yL9Cn2Ch72EjFTRze8RZsNtg==
+  dependencies:
+    "@types/sinonjs__fake-timers" "*"
+
+"@types/sinonjs__fake-timers@*":
+  version "6.0.2"
+  resolved "https://registry.yarnpkg.com/@types/sinonjs__fake-timers/-/sinonjs__fake-timers-6.0.2.tgz#3a84cf5ec3249439015e14049bd3161419bf9eae"
+  integrity sha512-dIPoZ3g5gcx9zZEszaxLSVTvMReD3xxyyDnQUjA6IYDG9Ba2AV0otMPs+77sG9ojB4Qr2N2Vk5RnKeuA0X/0bg==
 
 "@types/tapable@*":
   version "1.0.4"
