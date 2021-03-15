@@ -10,7 +10,7 @@
     "@hint/utils": "^4.0.0",
     "@hint/utils-debugging-protocol-common": "^4.0.6",
     "chrome-launcher": "^0.11.2",
-    "is-ci": "^2.0.0"
+    "is-ci": "^3.0.0"
   },
   "description": "hint connector for Google Chrome",
   "devDependencies": {
