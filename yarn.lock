@@ -8960,10 +8960,10 @@ p-map@^2.0.0:
   resolved "https://registry.yarnpkg.com/p-map/-/p-map-2.1.0.tgz#310928feef9c9ecc65b68b17693018a665cea175"
   integrity sha512-y3b8Kpd8OAN444hxfBbFfj1FY/RjtTd8tzYwhUqNYXx0fXx2iX4maP4Qr6qhIKbQXI02wTLAda4fYUbDagTUFw==
 
-p-retry@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/p-retry/-/p-retry-4.1.0.tgz#9ce7cef2069e84bf590df3b8ec18d740109338d6"
-  integrity sha512-oepllyG9gX1qH4Sm20YAKxg1GA7L7puhvGnTfimi31P07zSIj7SDV6YtuAx9nbJF51DES+2CIIRkXs8GKqWJxA==
+p-retry@^4.5.0:
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/p-retry/-/p-retry-4.5.0.tgz#6685336b3672f9ee8174d3769a660cb5e488521d"
+  integrity sha512-5Hwh4aVQSu6BEP+w2zKlVXtFAaYQe1qWuVADSgoeVlLjwe/Q/AMSoRR4MDeaAfu8llT+YNbEijWu/YF3m6avkg==
   dependencies:
     "@types/retry" "^0.12.0"
     retry "^0.12.0"
