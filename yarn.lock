@@ -372,38 +372,53 @@
   dependencies:
     arrify "^1.0.1"
 
-"@microsoft/applicationinsights-channel-js@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-channel-js/-/applicationinsights-channel-js-2.2.0.tgz#3a424729c0176288e79db8e1b3478ce3e7fa8a9d"
-  integrity sha512-o67F1YVSXGyjZhMDrZQRzWJK0mH4Qm6YphG12ZVbdgQZeoouI4uoIDHxOOuIi4GLNdX8w59k8Wy2tnxFQbPY8A==
+"@microsoft/applicationinsights-channel-js@2.6.3":
+  version "2.6.3"
+  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-channel-js/-/applicationinsights-channel-js-2.6.3.tgz#d89bef7b1033d19a7e07d98a3378c8889fbea231"
+  integrity sha512-9YnrWpy5TkSiPt6E+Uovdg1mXHSNcQVmSPjOBgw2QPKc8m0O6nXG5yqHuH89qpxlqhtZrzFYBClgejmwNF+NZg==
   dependencies:
-    "@microsoft/applicationinsights-common" "2.2.0"
-    "@microsoft/applicationinsights-core-js" "2.2.0"
-    tslib "^1.9.3"
+    "@microsoft/applicationinsights-common" "2.6.3"
+    "@microsoft/applicationinsights-core-js" "2.6.3"
+    "@microsoft/applicationinsights-shims" "2.0.0"
+    "@microsoft/dynamicproto-js" "^1.1.4"
 
-"@microsoft/applicationinsights-common@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-common/-/applicationinsights-common-2.2.0.tgz#12e81cca220450d16129fea4f16e3212efbfd32e"
-  integrity sha512-4zFUD4y8ekJ8tZSK2k5Ij6pvWYGFIcH8RoHKlkm7D+mO7vGkvR9dF7hJEJ/eliCtETbEJeNw/wi8TCxvc6oHkA==
+"@microsoft/applicationinsights-common@2.6.3":
+  version "2.6.3"
+  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-common/-/applicationinsights-common-2.6.3.tgz#40b81199c40e16bdf3958f0cab96e856ea5f8412"
+  integrity sha512-a9F0U44iZK4K+rdBS+fsRZp6Rj+Cn/AtNoOOXZ1jVLOL922avOHHb9Hwx+04+4Yp5+QbPiSa/cH5FOnC4w49yg==
   dependencies:
-    "@microsoft/applicationinsights-core-js" "2.2.0"
-    tslib "^1.9.3"
+    "@microsoft/applicationinsights-core-js" "2.6.3"
+    "@microsoft/applicationinsights-shims" "2.0.0"
+    "@microsoft/dynamicproto-js" "^1.1.4"
 
-"@microsoft/applicationinsights-core-js@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-core-js/-/applicationinsights-core-js-2.2.0.tgz#80b3352367834447499c0324ccddd1264d1770b4"
-  integrity sha512-+96gffh7TfYho8J0Oaxr9SUtUr0SwWMPArCMngnqqY5gcgNu9LaiVt/e/gsz8kKEuLb3m2+d22mmHb2fwpxMbQ==
+"@microsoft/applicationinsights-core-js@2.6.3":
+  version "2.6.3"
+  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-core-js/-/applicationinsights-core-js-2.6.3.tgz#5ca8afc88b338526ebb3aa1631e8e51044fafd21"
+  integrity sha512-h45VrOyFrMs8c2S5JQdk7fBjI6Respyu0G5o/HFyJC0EWFnarCdOC/Nxdl8yHJYxyCSGIHedZBAL4CVuugCQDA==
   dependencies:
-    tslib "^1.9.3"
+    "@microsoft/applicationinsights-shims" "2.0.0"
+    "@microsoft/dynamicproto-js" "^1.1.4"
 
-"@microsoft/applicationinsights-web-basic@^2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-web-basic/-/applicationinsights-web-basic-2.2.0.tgz#85388f593239f264839b0e8fd5cd3dd47b7eb913"
-  integrity sha512-16IjDsmbnpWxQFOMrEliKWqWqXYEdMOjsqHEn96F3JSuJgsSN3f+ufURTfaiEbCwkgvSAjlaSIICYg2SqJGXPg==
+"@microsoft/applicationinsights-shims@2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-shims/-/applicationinsights-shims-2.0.0.tgz#ee622588f14e58ae3c055b12431da8ed55d71991"
+  integrity sha512-OaKew7f7acuNFgKYjMSPrRTRQi93xUyONWeeCeBlJSx7oRNJaL0TqbTvW6j5GHnSr3mhinPtAQ+rCQWASBnOrg==
+
+"@microsoft/applicationinsights-web-basic@^2.6.3":
+  version "2.6.3"
+  resolved "https://registry.yarnpkg.com/@microsoft/applicationinsights-web-basic/-/applicationinsights-web-basic-2.6.3.tgz#77d27dfb26e4d48416842a73736a92d43feadf4c"
+  integrity sha512-wqGLcFWQD9xuWUzlyEPxBOEhXz+UH7Vq+2l3OLS7oNO1NPGjxNHd7H3GRli1fScMfQcMT29Xuvpn6zjzwpOcHg==
   dependencies:
-    "@microsoft/applicationinsights-channel-js" "2.2.0"
-    "@microsoft/applicationinsights-common" "2.2.0"
-    "@microsoft/applicationinsights-core-js" "2.2.0"
+    "@microsoft/applicationinsights-channel-js" "2.6.3"
+    "@microsoft/applicationinsights-common" "2.6.3"
+    "@microsoft/applicationinsights-core-js" "2.6.3"
+    "@microsoft/applicationinsights-shims" "2.0.0"
+    "@microsoft/dynamicproto-js" "^1.1.4"
+
+"@microsoft/dynamicproto-js@^1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@microsoft/dynamicproto-js/-/dynamicproto-js-1.1.4.tgz#40e1c0ad20743fcee1604a7df2c57faf0aa1af87"
+  integrity sha512-Ot53G927ykMF8cQ3/zq4foZtdk+Tt1YpX7aUTHxBU7UHNdkEiBvBfZSq+rnlUmKCJ19VatwPG4mNzvcGpBj4og==
 
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
