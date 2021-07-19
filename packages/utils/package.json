@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@types/parse5": "^5.0.2",
-    "ajv": "^6.10.1",
+    "ajv": "^8.6.2",
     "applicationinsights": "^1.4.1",
     "configstore": "^5.0.0",
     "content-type": "^1.0.4",
