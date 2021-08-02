@@ -886,10 +886,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/parse5-htmlparser2-tree-adapter@^5.0.1":
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/@types/parse5-htmlparser2-tree-adapter/-/parse5-htmlparser2-tree-adapter-5.0.1.tgz#3e012cb4109099d9ea7e1e8c505f7989bca20544"
-  integrity sha512-XkAJW6+AXbIHfkkQetQPWKnL+kQ4IV5tW11YUzYkCfwBH8m1OjOvbEQuAhnS2GsG+0Iid+bDxzgbg32E0z747g==
+"@types/parse5-htmlparser2-tree-adapter@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/@types/parse5-htmlparser2-tree-adapter/-/parse5-htmlparser2-tree-adapter-6.0.1.tgz#f8820db94fe98f9f3890a01086f2cad09b868661"
+  integrity sha512-4/HRViCNVy+0oGXiyJ0jb6+PUXcP5WDM+Todg/UCYb5gPjLnppBflan4QH+TizZMlVX3smOvRp2qHA5pOqf+Gw==
   dependencies:
     "@types/parse5" "*"
 
